@@ -65,7 +65,7 @@
         暂无收纳盒<br><span style="font-size:11px;color:#c7c7cc">点击 + 创建</span>
       </div>
       <template x-for="box in boxes" :key="box.id">
-        <div @drop.prevent="onDropTo($event, box.id)" @dragover.prevent="onDragOverTo"
+        <div @drop.prevent="onDropTo($event, box.id)" @dragover.prevent="onDragOverTo" @dragleave="onDragLeaveTo"
              style="margin-bottom:8px;border-radius:10px;overflow:hidden;
                     background:rgba(0,0,0,0.02);transition:all 0.2s"
              :style="activeBoxId === box.id ? 'background:rgba(0,122,255,0.06);box-shadow:inset 0 0 0 1px rgba(0,122,255,0.15)' : ''">
@@ -211,9 +211,8 @@ function boxTray() {
         fd.append('image_id', imageId);
         await fetch(`/boxes/${boxId}/add-image`, { method: 'POST', body: fd });
         await this.loadItems(boxId);
-        // Update box count
         const box = this.boxes.find(b => b.id === boxId);
-        if (box) box.count = (box.boxItems?.[boxId] || []).length;
+        if (box) box.count = (this.boxItems[boxId] || []).length;
       } catch(e) { console.error(e); }
     },
 
@@ -267,18 +266,25 @@ function boxTray() {
       if (!raw) return;
       try {
         const data = JSON.parse(raw);
-        // If only one box, add directly; otherwise let user pick
         if (this.boxes.length === 1) {
+          this.activeBoxId = this.boxes[0].id;
           this.addToBox(this.boxes[0].id, data.id);
         } else if (this.boxes.length > 1) {
-          // Expand the first box to show it's the target
-          if (this.boxes[0]) this.activeBoxId = this.boxes[0].id;
+          // Expand all boxes so user can see where to drop next
+          this.activeBoxId = this.boxes[0].id;
           this.addToBox(this.boxes[0].id, data.id);
+        } else {
+          // No boxes yet — show create form
+          this.showCreate = true;
+          this.$nextTick(() => { if (this.$refs.createInput) this.$refs.createInput.focus(); });
         }
       } catch(e) { this.dragOver = false; }
     },
     onDragOverTo(e) {
       e.currentTarget.style.background = 'rgba(0,122,255,0.1)';
+    },
+    onDragLeaveTo(e) {
+      e.currentTarget.style.background = '';
     },
     onDropTo(e, boxId) {
       e.currentTarget.style.background = '';
