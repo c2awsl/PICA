@@ -153,7 +153,7 @@ def run_all(args):
 
 
 def load_config(config_arg: str | None) -> Config:
-    cfg_path = Path(config_arg) if config_arg else (Path("config.json") if Path("config.json").exists() else None)
+    cfg_path = Path(config_arg) if config_arg else Path("config.json")
     cfg = Config.load(cfg_path)
     cfg.ensure_dirs()
     return cfg

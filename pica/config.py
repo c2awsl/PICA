@@ -117,7 +117,7 @@ class Config:
 
     def save(self):
         if self.config_file is None:
-            return
+            self.config_file = Path("config.json")
         self.config_file.parent.mkdir(parents=True, exist_ok=True)
         self.config_file.write_text(
             json.dumps(self.to_dict(), ensure_ascii=False, indent=2),
@@ -133,11 +133,10 @@ class Config:
     @classmethod
     def load(cls, path: str | None = None) -> "Config":
         cfg = cls()
-        if path:
-            p = Path(path)
-            cfg.config_file = p
-            if p.exists():
-                data = json.loads(p.read_text(encoding="utf-8"))
-                cfg.update_from_dict(data)
+        p = Path(path) if path else Path("config.json")
+        cfg.config_file = p
+        if p.exists():
+            data = json.loads(p.read_text(encoding="utf-8"))
+            cfg.update_from_dict(data)
         cfg.__post_init__()
         return cfg
