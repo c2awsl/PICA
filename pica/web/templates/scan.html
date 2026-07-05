@@ -1,86 +1,99 @@
 {% extends "base.html" %}
 {% block title %}扫描{% endblock %}
 {% block content %}
-<div class="page-pad">
-<div class="page-title">扫描源目录</div>
+<div class="min-h-screen" style="background:#f5f5f7;font-family:var(--font-stack)">
+  <div class="sticky top-0 z-30 bg-white/80 backdrop-blur-2xl border-b border-white/30 px-6 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 shadow-sm">
+        <i class="fa-regular fa-radar" style="font-size:13px"></i>
+      </div>
+      <h1 class="text-base font-semibold text-gray-800">扫描</h1>
+    </div>
+  </div>
 
-<div class="apple-card">
-  <p style="color:#86868b;margin-bottom:16px;font-size:13px;line-height:1.5;">
-    程序将递归扫描所配置的源目录，自动找出图片文件并复制到待确认区。
-    原始文件不会被修改或移动。
-  </p>
+  <div class="p-6 space-y-5" style="max-width:800px">
+    <!-- Description card -->
+    <div class="glass-card p-5">
+      <p class="text-sm text-gray-500 leading-relaxed">
+        程序将递归扫描所配置的源目录，自动找出图片文件并复制到待确认区。
+        原始文件不会被修改或移动。
+      </p>
 
-  <div x-data="scanner()" x-init="init()">
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-      <button class="apple-btn" @click="startScan" x-show="status==='idle'">
-        <i class="fa-solid fa-play mr-1"></i>开始扫描
-      </button>
-      <button class="apple-btn-warning" @click="pauseScan" x-show="status==='running'" style="display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 16px;border-radius:8px;border:none;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.2s;">
-        <i class="fa-solid fa-pause mr-1"></i>暂停
-      </button>
-      <button class="apple-btn" @click="resumeScan" x-show="status==='paused'">
-        <i class="fa-solid fa-play mr-1"></i>继续
-      </button>
-      <button class="apple-btn-destructive" @click="stopScan" x-show="status==='running' || status==='paused'" style="display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 16px;border-radius:8px;border:none;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.2s;">
-        <i class="fa-solid fa-stop mr-1"></i>停止
-      </button>
-      <button class="apple-btn-secondary" @click="exitScanner" x-show="alive" style="display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 16px;border-radius:8px;border:none;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.2s;">
-        <i class="fa-solid fa-power-off mr-1"></i>退出扫描程序
-      </button>
-      <span x-show="status==='running'" style="color:#ff9500;font-size:13px;font-weight:500;">
-        <span class="spinner"></span> 扫描中…
-      </span>
-      <span x-show="status==='paused'" style="color:#86868b;font-size:13px;font-weight:500;">
-        <i class="fa-solid fa-pause mr-1"></i>已暂停
-      </span>
+      <div x-data="scanner()" x-init="init()" class="mt-4">
+        <div class="flex items-center gap-2 flex-wrap">
+          <button class="glass-btn h-9 px-5 rounded-xl text-xs font-medium glass-blue" @click="startScan" x-show="status==='idle'">
+            <i class="fa-solid fa-play mr-1"></i>开始扫描
+          </button>
+          <button class="glass-btn h-9 px-5 rounded-xl text-xs font-medium flex items-center gap-1" @click="pauseScan" x-show="status==='running'"
+                  style="background:rgba(255,149,0,0.15);color:#b86800;border:none;cursor:pointer;transition:all 0.2s">
+            <i class="fa-solid fa-pause mr-1"></i>暂停
+          </button>
+          <button class="glass-btn h-9 px-5 rounded-xl text-xs font-medium glass-blue" @click="resumeScan" x-show="status==='paused'">
+            <i class="fa-solid fa-play mr-1"></i>继续
+          </button>
+          <button class="glass-btn h-9 px-5 rounded-xl text-xs font-medium glass-red" @click="stopScan" x-show="status==='running' || status==='paused'">
+            <i class="fa-solid fa-stop mr-1"></i>停止
+          </button>
+          <button class="glass-btn h-9 px-5 rounded-xl text-xs font-medium glass-gray" @click="exitScanner" x-show="alive">
+            <i class="fa-solid fa-power-off mr-1"></i>退出扫描程序
+          </button>
+          <span x-show="status==='running'" class="text-sm font-medium flex items-center gap-1.5" style="color:#b86800">
+            <span class="spinner"></span> 扫描中…
+          </span>
+          <span x-show="status==='paused'" class="text-sm font-medium text-gray-400">
+            <i class="fa-solid fa-pause mr-1"></i>已暂停
+          </span>
+        </div>
+
+        <template x-if="ran || status!=='idle'">
+          <div class="mt-4">
+            <div class="grid gap-3 mb-4" style="grid-template-columns:repeat(4,1fr)">
+              <div class="glass-card p-4 text-center">
+                <div class="text-2xl font-bold" style="color:var(--color-blue)" x-text="found"></div>
+                <div class="text-[11px] text-gray-400 mt-1">发现</div>
+              </div>
+              <div class="glass-card p-4 text-center">
+                <div class="text-2xl font-bold" style="color:var(--color-green)" x-text="newCount"></div>
+                <div class="text-[11px] text-gray-400 mt-1">新增待确认</div>
+              </div>
+              <div class="glass-card p-4 text-center">
+                <div class="text-2xl font-bold text-gray-400" x-text="skipped"></div>
+                <div class="text-[11px] text-gray-400 mt-1">已跳过（重复）</div>
+              </div>
+              <div class="glass-card p-4 text-center">
+                <div class="text-2xl font-bold" style="color:var(--color-red)" x-text="errors"></div>
+                <div class="text-[11px] text-gray-400 mt-1">错误</div>
+              </div>
+            </div>
+            <div x-show="currentFile" class="text-xs text-gray-400 break-all font-mono bg-black/3 px-4 py-3 rounded-xl" style="background:rgba(0,0,0,0.03)">
+              当前：<span x-text="currentFile"></span>
+            </div>
+          </div>
+        </template>
+      </div>
     </div>
 
-    <template x-if="ran || status!=='idle'">
-      <div style="margin-top:20px;">
-        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
-          <div class="stat-card" style="padding:16px;">
-            <div class="stat-value" style="color:#007aff;font-size:24px;" x-text="found"></div>
-            <div class="stat-label">发现</div>
-          </div>
-          <div class="stat-card" style="padding:16px;">
-            <div class="stat-value" style="color:#34c759;font-size:24px;" x-text="newCount"></div>
-            <div class="stat-label">新增待确认</div>
-          </div>
-          <div class="stat-card" style="padding:16px;">
-            <div class="stat-value" style="color:#86868b;font-size:24px;" x-text="skipped"></div>
-            <div class="stat-label">已跳过（重复）</div>
-          </div>
-          <div class="stat-card" style="padding:16px;">
-            <div class="stat-value" style="color:#ff3b30;font-size:24px;" x-text="errors"></div>
-            <div class="stat-label">错误</div>
-          </div>
-        </div>
-        <div x-show="currentFile" style="font-size:12px;color:#aeaeb2;word-break:break-all;background:#f5f5f7;padding:10px 14px;border-radius:8px;font-family:'SF Mono',monospace;">
-          当前：<span x-text="currentFile"></span>
-        </div>
-      </div>
-    </template>
+    <!-- Source dirs card -->
+    <div class="glass-card p-5">
+      <div class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">已配置的源目录</div>
+      {% if cfg.scan_sources %}
+      <ul class="space-y-1.5" style="list-style:none;padding:0">
+        {% for src in cfg.scan_sources %}
+        <li class="px-4 py-3 rounded-xl text-sm font-mono" style="background:rgba(0,0,0,0.03);color:#515154">{{ src }}</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-sm text-gray-400">尚未配置扫描源目录，请前往 <a href="/settings" class="text-blue-500 hover:underline" style="text-decoration:none">设置</a> 页面添加。</p>
+      {% endif %}
+    </div>
   </div>
-</div>
-
-<div class="apple-card">
-  <div class="apple-card-header">已配置的源目录</div>
-  {% if cfg.scan_sources %}
-  <ul style="list-style:none;padding:0;">
-    {% for src in cfg.scan_sources %}
-    <li style="padding:10px 14px;background:#f5f5f7;border-radius:8px;margin-bottom:6px;font-size:13px;font-family:'SF Mono',monospace;color:#515154;">{{ src }}</li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p style="color:#aeaeb2;font-size:13px;">尚未配置扫描源目录，请前往 <a href="/settings" class="apple-link">设置</a> 页面添加。</p>
-  {% endif %}
 </div>
 
 <style>
 .spinner {
   display: inline-block; width: 14px; height: 14px;
   border: 2px solid #ff9500; border-top-color: transparent; border-radius: 50%;
-  animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 6px;
+  animation: spin 0.8s linear infinite; vertical-align: middle;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>
@@ -90,9 +103,7 @@ function scanner() {
   return {
     status: "idle", alive: false, ran: false,
     found: 0, newCount: 0, skipped: 0, errors: 0, currentFile: "", timer: null,
-
     init() { this.poll(); },
-
     async poll() {
       try {
         const r = await fetch("/scan/progress");
@@ -107,7 +118,6 @@ function scanner() {
       } catch(e) {}
       this.timer = setTimeout(() => this.poll(), 1000);
     },
-
     async startScan() { await fetch("/scan/start", { method: "POST" }); this.ran = true; this.alive = true; this.status = "running"; },
     async pauseScan() { await fetch("/scan/pause", { method: "POST" }); this.status = "paused"; },
     async resumeScan() { await fetch("/scan/resume", { method: "POST" }); this.status = "running"; },
@@ -116,5 +126,4 @@ function scanner() {
   }
 }
 </script>
-</div>
 {% endblock %}

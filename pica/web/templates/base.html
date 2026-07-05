@@ -10,18 +10,101 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
         /* ═══════════════════════════════════════════
-           Apple Design System — PICA
+           Design Tokens (CSS Custom Properties)
            ═══════════════════════════════════════════ */
+        :root {
+            --color-bg: #f5f5f7;
+            --color-surface: rgba(255,255,255,0.72);
+            --color-surface-hover: rgba(255,255,255,0.92);
+            --color-border: rgba(0,0,0,0.06);
+            --color-border-light: rgba(255,255,255,0.3);
+            --color-text: #1d1d1f;
+            --color-text-secondary: #515154;
+            --color-text-tertiary: #86868b;
+            --color-text-quaternary: #aeaeb2;
+            --color-blue: #007aff;
+            --color-green: #34c759;
+            --color-red: #ff453a;
+            --color-orange: #ff9500;
+            --color-purple: #af52de;
+            --radius-sm: 6px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+            --radius-round: 999px;
+            --blur-card: 16px;
+            --blur-panel: 30px;
+            --blur-titlebar: 40px;
+            --shadow-card: 0 2px 20px rgba(0,0,0,0.04);
+            --shadow-card-hover: 0 8px 40px rgba(0,0,0,0.08);
+            --shadow-floating: 0 4px 24px rgba(0,0,0,0.08);
+            --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Segoe UI", Roboto, Arial, sans-serif;
+            --btn-height: 36px;
+            --page-gap: 16px;
+        }
 
         /* ── Reset & Base ── */
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
-            background: #f5f5f7; color: #1d1d1f; min-height: 100vh; font-size: 14px; line-height: 1.47059;
+            font-family: var(--font-stack);
+            background: var(--color-bg); color: var(--color-text); min-height: 100vh; font-size: 14px; line-height: 1.47059;
             letter-spacing: -0.01em;
         }
 
+        /* ═══════════════════════════════════════════
+           Glassmorphism Component System
+           ═══════════════════════════════════════════ */
+        .glass-card {
+            background: var(--color-surface); backdrop-filter: blur(var(--blur-card)); -webkit-backdrop-filter: blur(var(--blur-card));
+            border: 1px solid var(--color-border-light); box-shadow: var(--shadow-card);
+            border-radius: var(--radius-xl); transition: all 0.25s;
+        }
+        .glass-card:hover { box-shadow: var(--shadow-card-hover); }
+        .glass-btn {
+            cursor: pointer; border: none; outline: none; transition: all 0.2s;
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border-radius: var(--radius-lg);
+        }
+        .glass-btn:hover { transform: scale(1.05); }
+        .glass-btn:active { transform: scale(0.97); }
+        .glass-blue { background: rgba(0,122,255,0.15); color: var(--color-blue); }
+        .glass-blue:hover { background: rgba(0,122,255,0.92); color: #fff; }
+        .glass-green { background: rgba(52,199,89,0.15); color: #1a6a32; }
+        .glass-green:hover { background: rgba(52,199,89,0.92); color: #fff; }
+        .glass-red { background: rgba(255,69,58,0.12); color: #b82e24; }
+        .glass-red:hover { background: rgba(255,69,58,0.92); color: #fff; }
+        .glass-gray { background: rgba(0,0,0,0.04); color: #555; }
+        .glass-gray:hover { background: rgba(0,0,0,0.08); color: #333; }
+
+        /* ═══════════════════════════════════════════
+           Toast Notification
+           ═══════════════════════════════════════════ */
+        .toast-container {
+            position: fixed; top: 60px; right: 20px; z-index: 2000;
+            display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+        }
+        .toast {
+            pointer-events: auto; padding: 10px 18px; border-radius: var(--radius-lg);
+            font-size: 13px; font-weight: 500; color: #fff;
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-floating);
+            display: flex; align-items: center; gap: 8px;
+            animation: toastIn 0.25s ease-out;
+            max-width: 360px;
+        }
+        .toast-success { background: rgba(52,199,89,0.92); }
+        .toast-error { background: rgba(255,69,58,0.92); }
+        .toast-info { background: rgba(0,122,255,0.92); }
+        .toast-warning { background: rgba(255,149,0,0.92); }
+        @keyframes toastIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes toastOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
         /* ── macOS Unified Titlebar ── */
         .mac-titlebar {
             position: sticky; top: 0; z-index: 100;
@@ -119,7 +202,7 @@
         }
         .apple-btn-secondary:hover { background: rgba(0,0,0,0.1); }
         .apple-btn-destructive {
-            background: #ff3b30; color: #fff;
+            background: var(--color-red); color: #fff;
         }
         .apple-btn-destructive:hover { background: #d62d20; }
         .apple-btn-warning {
@@ -166,7 +249,7 @@
         .apple-badge-blue { background: rgba(0,122,255,0.1); color: #007aff; }
         .apple-badge-green { background: rgba(52,199,89,0.1); color: #1a6a32; }
         .apple-badge-orange { background: rgba(255,149,0,0.1); color: #b86800; }
-        .apple-badge-red { background: rgba(255,59,48,0.1); color: #b82e24; }
+        .apple-badge-red { background: rgba(255,69,58,0.1); color: #b82e24; }
         .apple-badge-gray { background: rgba(0,0,0,0.04); color: #86868b; }
         .apple-badge-purple { background: rgba(175,82,222,0.1); color: #7b2f9e; }
 
@@ -188,7 +271,7 @@
         }
         .apple-alert-success { background: rgba(52,199,89,0.08); color: #1a6a32; }
         .apple-alert-warning { background: rgba(255,149,0,0.08); color: #b86800; }
-        .apple-alert-error { background: rgba(255,59,48,0.08); color: #b82e24; }
+        .apple-alert-error { background: rgba(255,69,58,0.08); color: #b82e24; }
         .apple-alert-info { background: rgba(0,122,255,0.08); color: #003d7a; }
         .apple-alert-close {
             background: none; border: none; cursor: pointer; color: inherit; opacity: 0.5;
@@ -352,6 +435,7 @@
 </head>
 <body x-data="lightboxStore()">
     <div id="marquee-rect"></div>
+    <div class="toast-container"></div>
     <!-- ═══ Global Lightbox ═══ -->
     <template x-teleport="body">
         <div class="lightbox-overlay" :class="show ? 'show' : ''"
@@ -431,6 +515,16 @@
     {% include '_box_tray.html' %}
 
     <script>
+    function toast(message, type, duration) {
+        type = type || 'success'; duration = duration || 3000;
+        const container = document.querySelector('.toast-container');
+        if (!container) return;
+        const el = document.createElement('div');
+        el.className = 'toast toast-' + type;
+        el.textContent = message;
+        container.appendChild(el);
+        setTimeout(() => { el.style.animation = 'toastOut 0.25s ease-in forwards'; setTimeout(() => el.remove(), 250); }, duration);
+    }
     function openLightbox(url, images, index) {
         const el = document.querySelector('[x-data]');
         if (el && el.__x) el.__x.$data.open(url, images, index);

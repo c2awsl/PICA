@@ -1,40 +1,49 @@
 {% extends "base.html" %}
 {% block title %}操作日志{% endblock %}
 {% block content %}
-<div class="page-pad">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-        <h1 class="page-title" style="margin-bottom:0"><i class="fa-regular fa-clock" style="margin-right:10px;color:#86868b"></i>操作日志</h1>
+<div class="min-h-screen" style="background:#f5f5f7;font-family:var(--font-stack)">
+  <div class="sticky top-0 z-30 bg-white/80 backdrop-blur-2xl border-b border-white/30 px-6 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 shadow-sm">
+        <i class="fa-regular fa-clock" style="font-size:13px"></i>
+      </div>
+      <h1 class="text-base font-semibold text-gray-800">操作日志</h1>
     </div>
+  </div>
 
+  <div class="p-6">
     {% if not logs %}
-    <div class="empty-state">
-        <i class="fa-regular fa-clock"></i>
-        <p>暂无操作记录</p>
+    <div class="flex flex-col items-center justify-center py-24 text-gray-400">
+      <i class="fa-regular fa-clock text-5xl mb-4 opacity-20"></i>
+      <p class="text-sm font-medium text-gray-500">暂无操作记录</p>
     </div>
     {% else %}
-    <div style="display:flex;flex-direction:column;gap:4px">
-        {% for log in logs %}
-        <div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:#fff;border-radius:8px;font-size:12px">
-            <span style="color:#aeaeb2;white-space:nowrap;font-family:monospace;font-size:11px">
-                {{ log.created_at.strftime('%m-%d %H:%M') if log.created_at else '' }}
-            </span>
-            <span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:500;
-                {% if log.action == 'confirm' %}background:rgba(52,199,89,0.1);color:#1a6a32
-                {% elif log.action == 'recycle' %}background:rgba(255,59,48,0.1);color:#b82e24
-                {% elif log.action == 'edit' %}background:rgba(0,122,255,0.1);color:#007aff
-                {% elif log.action == 'group_process' %}background:rgba(175,82,222,0.1);color:#7b2f9e
-                {% else %}background:rgba(0,0,0,0.04);color:#86868b{% endif %}">
-                {{ log.action }}
-            </span>
-            {% if log.image_id %}
-            <a href="/archive/{{ log.image_id }}" class="apple-link" style="font-size:12px">
-                图片 #{{ log.image_id }}
-            </a>
-            {% endif %}
-            <span style="color:#86868b;margin-left:auto">{{ log.details or '' }}</span>
-        </div>
-        {% endfor %}
+    <div class="glass-card overflow-hidden" style="padding:0">
+      {% for log in logs %}
+      <div class="flex items-center gap-3 px-4 py-3 text-xs border-b border-white/30 last:border-b-0 transition-colors hover:bg-white/40"
+           style="border-bottom:1px solid rgba(0,0,0,0.04)">
+        <span class="text-gray-400 whitespace-nowrap font-mono text-[11px] w-20 flex-shrink-0">
+          {{ log.created_at.strftime('%m-%d %H:%M') if log.created_at else '' }}
+        </span>
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium flex-shrink-0"
+          style="{% if log.action == 'confirm' %}background:rgba(52,199,89,0.1);color:#1a6a32
+                 {% elif log.action == 'recycle' %}background:rgba(255,69,58,0.1);color:#b82e24
+                 {% elif log.action == 'edit' or log.action == 'batch_edit' %}background:rgba(0,122,255,0.1);color:#007aff
+                 {% elif log.action in ('restore','permanent_delete') %}background:rgba(255,149,0,0.1);color:#b86800
+                 {% elif log.action == 'group_process' or log.action == 'finalize_box' %}background:rgba(175,82,222,0.1);color:#7b2f9e
+                 {% else %}background:rgba(0,0,0,0.04);color:#86868b{% endif %}">
+          {{ {'confirm':'归档','recycle':'删除','edit':'编辑','batch_edit':'批量编辑','restore':'恢复','permanent_delete':'永久删除','group_process':'分组处理','finalize_box':'收纳盒转分组','create_box':'创建收纳盒','add_to_box':'添加到收纳盒','remove_from_box':'移出收纳盒','rename_box':'重命名'}.get(log.action, log.action) }}
+        </span>
+        {% if log.image_id %}
+        <a href="/archive/{{ log.image_id }}" class="text-blue-500 hover:text-blue-600 flex-shrink-0" style="text-decoration:none">
+          图片 #{{ log.image_id }}
+        </a>
+        {% endif %}
+        <span class="text-gray-400 ml-auto truncate" style="max-width:400px">{{ log.details or '' }}</span>
+      </div>
+      {% endfor %}
     </div>
     {% endif %}
+  </div>
 </div>
 {% endblock %}
