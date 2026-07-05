@@ -1,8 +1,8 @@
 <div class="ani-in flex gap-4 p-4 border-b border-white/30 hover:bg-white/40 transition-all duration-300 group" data-img-id="{{ img.id }}">
   <input type="checkbox" x-show="selectionMode" :checked="selected.includes({{ img.id }})" @change="toggleSelect({{ img.id }})" class="w-4 h-4 rounded border-gray-300 text-blue-500 cursor-pointer flex-shrink-0 mt-0.5">
-  <a href="/preview/{{ img.id }}" target="_blank" class="flex-shrink-0 w-48 max-h-32 rounded-xl overflow-hidden shadow-sm">
+  <div class="flex-shrink-0 w-48 max-h-32 rounded-xl overflow-hidden shadow-sm cursor-pointer" @click="openLightbox('/thumbnails/{{ img.md5_hash }}_1024.jpg', [], 0)">
     <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="" loading="lazy" class="w-full h-full object-cover bg-gray-100/50">
-  </a>
+  </div>
   <div class="flex-1 min-w-0">
     <div class="text-base font-semibold text-gray-800 leading-snug flex items-center gap-1.5">{{ img.filename }}
       {% if img.ai_status == 'pending' %}
@@ -18,7 +18,7 @@
     <div class="flex flex-wrap gap-1.5 mt-1">
       {% if img.work_name %}<span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-50/80 text-blue-600 border border-blue-200/40 font-medium">{{ img.work_name }}</span>{% endif %}
       {% if img.image_type %}<span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-50/80 text-purple-600 border border-purple-200/40 font-medium">{{ img.image_type }}</span>{% endif %}
-      {% if img.suggested_category %}<span class="text-[10px] px-2 py-0.5 rounded-full bg-orange-50/80 text-orange-600 border border-orange-200/40 font-medium">{{ img.suggested_category.split(',')[0] }}</span>{% endif %}
+      {% for c in img.suggested_category_list %}<span class="text-[10px] px-2 py-0.5 rounded-full bg-orange-50/80 text-orange-600 border border-orange-200/40 font-medium">{{ c }}</span>{% endfor %}
     </div>
     <div class="text-xs text-gray-400 mt-1 font-medium">{{ img.width }}×{{ img.height }} · {{ (img.file_size/1024)|round(1) }} KB · {{ img.created_at.strftime('%Y-%m-%d %H:%M') if img.created_at else '' }}</div>
     <div class="flex gap-1.5 mt-2">
@@ -27,7 +27,11 @@
         <button type="submit" class="glass-btn glass-gray w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="重试AI"><i class="fa-solid fa-rotate"></i></button>
       </form>
       {% endif %}
-      <button @click="$dispatch('confirm-img', { id: {{ img.id }} })" class="glass-btn glass-green w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="归档"><i class="fa-solid fa-check"></i></button>
+      <form action="/pending/{{ img.id }}/confirm" method="post" class="inline-flex items-center gap-1">
+        <input type="hidden" name="category" value="{{ (img.suggested_category_list or [''])[0] }}">
+        <input type="hidden" name="tags" value="{{ (img.suggested_tags_list or []) | join(',') }}">
+        <button type="submit" class="glass-btn glass-green w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="归档"><i class="fa-solid fa-check"></i></button>
+      </form>
       <form action="/pending/{{ img.id }}/reject" method="post"><button type="submit" class="glass-btn glass-red w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="驳回"><i class="fa-solid fa-xmark"></i></button></form>
     </div>
   </div>

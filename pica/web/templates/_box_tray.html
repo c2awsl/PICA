@@ -1,0 +1,299 @@
+<div x-data="boxTray()" x-init="init()"
+     style="position:fixed;top:56px;right:0;bottom:0;z-index:50;display:flex;align-items:stretch;pointer-events:none">
+  <!-- Toggle tab (always visible, sticks to right edge) -->
+  <div style="pointer-events:auto;display:flex;align-items:center">
+    <button @click="toggle()"
+            :style="open ? 'right:340px' : 'right:0'"
+            style="position:relative;width:32px;height:48px;border-radius:8px 0 0 8px;border:none;cursor:pointer;
+                   background:rgba(255,255,255,0.85);backdrop-filter:blur(20px);color:#515154;font-size:14px;
+                   box-shadow:-1px 0 6px rgba(0,0,0,0.04);transition:all 0.3s;
+                   display:flex;align-items:center;justify-content:center"
+            @mouseenter="$el.style.background='rgba(255,255,255,0.95)'"
+            @mouseleave="$el.style.background='rgba(255,255,255,0.85)'"
+            title="收纳盒">
+      <i class="fa-regular fa-box"></i>
+    </button>
+  </div>
+
+  <!-- Tray panel -->
+  <div x-show="open" x-transition:enter="transition ease-out duration-250"
+       x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
+       x-transition:leave="transition ease-in duration-200"
+       x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"
+       style="pointer-events:auto;width:340px;height:100%;overflow:hidden;
+              background:rgba(255,255,255,0.88);backdrop-filter:blur(30px);
+              border-left:1px solid rgba(0,0,0,0.06);
+              box-shadow:-4px 0 24px rgba(0,0,0,0.06);
+              display:flex;flex-direction:column"
+       @drop.prevent="onDrop($event)" @dragover.prevent="onDragOver($event)"
+       @dragleave="onDragLeave">
+    <!-- Header -->
+    <div style="padding:14px 16px;border-bottom:1px solid rgba(0,0,0,0.04);flex-shrink:0">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:13px;font-weight:600;color:#1d1d1f">
+          <i class="fa-regular fa-box" style="margin-right:6px;color:#007aff"></i>收纳盒
+          <span style="font-size:11px;color:#86868b;font-weight:400;margin-left:6px" x-text="'(' + boxes.length + ')'"></span>
+        </span>
+        <div style="display:flex;gap:4px">
+          <button @click="showCreate=true" style="width:28px;height:28px;border-radius:6px;border:none;cursor:pointer;
+                  background:rgba(0,122,255,0.1);color:#007aff;font-size:13px;display:flex;align-items:center;justify-content:center;
+                  transition:all 0.2s" title="新建收纳盒" @mouseenter="$el.style.background='rgba(0,122,255,0.2)'" @mouseleave="$el.style.background='rgba(0,122,255,0.1)'">
+            <i class="fa-solid fa-plus"></i>
+          </button>
+        </div>
+      </div>
+      <!-- Create form -->
+      <div x-show="showCreate" style="margin-top:10px;display:flex;gap:6px">
+        <input type="text" x-model="newName" @keydown.enter="createBox" @keydown.escape="cancelCreate"
+               placeholder="收纳盒名称…" x-ref="createInput"
+               style="flex:1;height:32px;padding:0 10px;font-size:12px;border:1px solid rgba(0,122,255,0.3);border-radius:6px;outline:none;
+                      background:#fff;font-family:inherit">
+        <button @click="createBox" style="height:32px;padding:0 12px;border-radius:6px;border:none;cursor:pointer;
+                background:#007aff;color:#fff;font-size:11px;font-weight:500">创建</button>
+      </div>
+      <!-- Drop zone hint -->
+      <div x-show="dragOver" style="margin-top:8px;padding:8px;border-radius:8px;background:rgba(0,122,255,0.08);
+            border:2px dashed rgba(0,122,255,0.3);text-align:center;font-size:11px;color:#007aff;font-weight:500">
+        <i class="fa-regular fa-hand-pointer"></i> 拖放图片到此
+      </div>
+    </div>
+
+    <!-- Box list (scrollable) -->
+    <div style="flex:1;overflow-y:auto;padding:8px">
+      <div x-show="!boxes.length" style="text-align:center;padding:32px 16px;color:#aeaeb2;font-size:12px">
+        <i class="fa-regular fa-box-open" style="font-size:32px;margin-bottom:10px;display:block;opacity:0.4"></i>
+        暂无收纳盒<br><span style="font-size:11px;color:#c7c7cc">点击 + 创建</span>
+      </div>
+      <template x-for="box in boxes" :key="box.id">
+        <div @drop.prevent="onDropTo($event, box.id)" @dragover.prevent="onDragOverTo"
+             style="margin-bottom:8px;border-radius:10px;overflow:hidden;
+                    background:rgba(0,0,0,0.02);transition:all 0.2s"
+             :style="activeBoxId === box.id ? 'background:rgba(0,122,255,0.06);box-shadow:inset 0 0 0 1px rgba(0,122,255,0.15)' : ''">
+          <!-- Box header (click to toggle) -->
+          <div @click="toggleBox(box.id)"
+               style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;user-select:none">
+            <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;flex-shrink:0"
+                  :style="'background:' + (box.color || '#007aff') + '18;color:' + (box.color || '#007aff')">
+              <i class="fa-regular fa-box" style="font-size:11px"></i>
+            </span>
+            <span style="flex:1;font-size:12px;font-weight:500;color:#1d1d1f;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" x-text="box.name"></span>
+            <span style="font-size:10px;color:#86868b;background:rgba(0,0,0,0.04);padding:1px 7px;border-radius:999px;flex-shrink:0" x-text="box.count"></span>
+            <i class="fa-solid fa-chevron-down" style="font-size:8px;color:#aeaeb2;transition:transform 0.2s"
+               :style="activeBoxId === box.id ? 'transform:rotate(180deg)' : ''"></i>
+          </div>
+          <!-- Expanded content -->
+          <div x-show="activeBoxId === box.id" x-collapse style="border-top:1px solid rgba(0,0,0,0.04)">
+            <!-- Thumbnail grid -->
+            <div x-show="(boxItems[box.id] || []).length" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:8px">
+              <template x-for="item in (boxItems[box.id] || []).slice(0,12)" :key="item.id">
+                <div style="position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;background:#f0f0f2;cursor:pointer"
+                     @click="openLightbox(item.lightbox_url, [], 0)">
+                  <img :src="item.thumb_url" :alt="item.filename" loading="lazy"
+                       style="width:100%;height:100%;object-fit:cover"
+                       @error="$el.style.display='none'">
+                  <!-- Remove button (X) in top-right corner -->
+                  <button @click.stop="removeItem(box.id, item.id)"
+                          style="position:absolute;top:1px;right:1px;width:16px;height:16px;border-radius:50%;border:none;
+                                 cursor:pointer;background:rgba(0,0,0,0.5);color:#fff;font-size:9px;display:flex;
+                                 align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s"
+                          @mouseenter="$el.style.opacity=1" @mouseleave="$el.style.opacity=0"
+                          @click.stop="removeItem(box.id, item.id)">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+              </template>
+            </div>
+            <div x-show="!(boxItems[box.id] || []).length" style="padding:16px;text-align:center;font-size:11px;color:#aeaeb2">
+              拖拽图片到这里
+            </div>
+            <!-- Show "more" link if > 12 -->
+            <div x-show="(boxItems[box.id] || []).length > 12" style="text-align:center;padding:2px 8px 6px;font-size:10px;color:#86868b">
+              + <span x-text="(boxItems[box.id] || []).length - 12"></span> 更多
+            </div>
+            <!-- Actions -->
+            <div style="display:flex;gap:4px;padding:6px 8px 8px">
+              <button @click="finalizeBox(box.id)"
+                      style="flex:1;height:28px;border-radius:6px;border:none;cursor:pointer;
+                             background:rgba(52,199,89,0.12);color:#1a6a32;font-size:10px;font-weight:500;
+                             display:flex;align-items:center;justify-content:center;gap:4px;
+                             transition:all 0.2s"
+                      @mouseenter="$el.style.background='rgba(52,199,89,0.25)'"
+                      @mouseleave="$el.style.background='rgba(52,199,89,0.12)'">
+                <i class="fa-solid fa-check"></i>确定分组
+              </button>
+              <button @click="deleteBox(box.id)"
+                      style="width:28px;height:28px;border-radius:6px;border:none;cursor:pointer;
+                             background:rgba(255,59,48,0.08);color:#b82e24;font-size:11px;
+                             display:flex;align-items:center;justify-content:center;transition:all 0.2s"
+                      @mouseenter="$el.style.background='rgba(255,59,48,0.2)'"
+                      @mouseleave="$el.style.background='rgba(255,59,48,0.08)'"
+                      title="删除收纳盒">
+                <i class="fa-regular fa-trash-can"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+</div>
+
+<script>
+function boxTray() {
+  return {
+    open: false,
+    boxes: [],
+    boxItems: {},
+    activeBoxId: null,
+    showCreate: false,
+    newName: '',
+    dragOver: false,
+    loading: true,
+
+    async init() {
+      await this.load();
+    },
+
+    toggle() {
+      this.open = !this.open;
+      if (this.open) this.load();
+    },
+    toggleBox(id) {
+      this.activeBoxId = this.activeBoxId === id ? null : id;
+      if (this.activeBoxId && !this.boxItems[id]) this.loadItems(id);
+    },
+    showCreateForm() { this.showCreate = true; this.$nextTick(() => { if (this.$refs.createInput) this.$refs.createInput.focus(); }); },
+    cancelCreate() { this.showCreate = false; this.newName = ''; },
+
+    async load() {
+      this.loading = true;
+      try {
+        const r = await fetch('/boxes/data/items');
+        const data = await r.json();
+        this.boxes = data.boxes || [];
+        for (const b of this.boxes) {
+          this.boxItems[b.id] = b.items || [];
+        }
+      } catch(e) { console.error('boxTray load', e); }
+      this.loading = false;
+    },
+
+    async loadItems(boxId) {
+      try {
+        const r = await fetch('/boxes/data/items');
+        const data = await r.json();
+        for (const b of data.boxes || []) {
+          this.boxItems[b.id] = b.items || [];
+        }
+      } catch(e) {}
+    },
+
+    async createBox() {
+      const name = this.newName.trim();
+      if (!name) return;
+      try {
+        const fd = new FormData();
+        fd.append('name', name);
+        const r = await fetch('/boxes/create', { method: 'POST', body: fd });
+        const data = await r.json();
+        if (data.success) {
+          this.newName = '';
+          this.showCreate = false;
+          await this.load();
+          this.activeBoxId = data.id;
+        }
+      } catch(e) { console.error(e); }
+    },
+
+    async addToBox(boxId, imageId) {
+      try {
+        const fd = new FormData();
+        fd.append('image_id', imageId);
+        await fetch(`/boxes/${boxId}/add-image`, { method: 'POST', body: fd });
+        await this.loadItems(boxId);
+        // Update box count
+        const box = this.boxes.find(b => b.id === boxId);
+        if (box) box.count = (box.boxItems?.[boxId] || []).length;
+      } catch(e) { console.error(e); }
+    },
+
+    async removeItem(boxId, imageId) {
+      try {
+        const fd = new FormData();
+        fd.append('image_id', imageId);
+        await fetch(`/boxes/${boxId}/remove-image`, { method: 'POST', body: fd });
+        this.boxItems[boxId] = (this.boxItems[boxId] || []).filter(it => it.id !== imageId);
+        const box = this.boxes.find(b => b.id === boxId);
+        if (box) box.count = this.boxItems[boxId].length;
+      } catch(e) { console.error(e); }
+    },
+
+    async deleteBox(boxId) {
+      if (!confirm('确定删除这个收纳盒？图片不会被删除。')) return;
+      try {
+        const fd = new FormData();
+        fd.append('id', boxId);
+        await fetch('/boxes/delete', { method: 'POST', body: fd });
+        this.boxes = this.boxes.filter(b => b.id !== boxId);
+        if (this.activeBoxId === boxId) this.activeBoxId = null;
+      } catch(e) { console.error(e); }
+    },
+
+    async finalizeBox(boxId) {
+      if (!confirm('确定将此收纳盒转为正式分组？图片将从收纳盒移出并创建一个新分组。')) return;
+      try {
+        const r = await fetch(`/boxes/${boxId}/finalize`, { method: 'POST' });
+        const data = await r.json();
+        if (data.success) {
+          this.boxes = this.boxes.filter(b => b.id !== boxId);
+          if (this.activeBoxId === boxId) this.activeBoxId = null;
+          if (data.group_id) {
+            window.open(`/groups/${data.group_id}`, '_blank');
+          }
+        }
+      } catch(e) { console.error(e); }
+    },
+
+    // Drag and drop
+    onDragOver(e) {
+      this.dragOver = true;
+    },
+    onDragLeave() {
+      this.dragOver = false;
+    },
+    onDrop(e) {
+      this.dragOver = false;
+      const raw = e.dataTransfer.getData('text/plain');
+      if (!raw) return;
+      try {
+        const data = JSON.parse(raw);
+        // If only one box, add directly; otherwise let user pick
+        if (this.boxes.length === 1) {
+          this.addToBox(this.boxes[0].id, data.id);
+        } else if (this.boxes.length > 1) {
+          // Expand the first box to show it's the target
+          if (this.boxes[0]) this.activeBoxId = this.boxes[0].id;
+          this.addToBox(this.boxes[0].id, data.id);
+        }
+      } catch(e) { this.dragOver = false; }
+    },
+    onDragOverTo(e) {
+      e.currentTarget.style.background = 'rgba(0,122,255,0.1)';
+    },
+    onDropTo(e, boxId) {
+      e.currentTarget.style.background = '';
+      const raw = e.dataTransfer.getData('text/plain');
+      if (!raw) return;
+      try {
+        const data = JSON.parse(raw);
+        this.addToBox(boxId, data.id);
+      } catch(e) {}
+    },
+
+    openLightbox(url) {
+      const el = document.querySelector('[x-data]');
+      if (el && el.__x) el.__x.$data.open(url, [], 0);
+    },
+  };
+}
+</script>

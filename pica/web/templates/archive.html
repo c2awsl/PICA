@@ -100,9 +100,15 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
       {% for img in images %}
       <div class="ani-in glass-card rounded-2xl overflow-hidden group" data-archive-id="{{ img.id }}">
         <div class="relative">
-          <a href="/archive/{{ img.id }}">
+          <div class="cursor-pointer" draggable="true"
+               @click="openLightbox('/thumbnails/{{ img.md5_hash }}_1024.jpg', [], 0)"
+               @dragstart="onDragStart($event, {id:{{ img.id }},thumb:'/thumbnails/{{ img.md5_hash }}_256.jpg',lightbox:'/thumbnails/{{ img.md5_hash }}_1024.jpg'})">
             <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="{{ img.filename }}" loading="lazy" class="w-full aspect-square object-cover block bg-gray-100/50">
-          </a>
+            <div class="img-hover-actions">
+              <button type="button" title="查看大图" onclick="event.stopPropagation();openLightbox('/thumbnails/{{ img.md5_hash }}_1024.jpg', [], 0)"><i class="fa-regular fa-expand"></i></button>
+              <a href="/archive/{{ img.id }}" title="详情"><i class="fa-regular fa-circle-info"></i></a>
+            </div>
+          </div>
           <div x-show="selectionMode" class="absolute top-2 left-2 z-10" x-cloak>
             <input type="checkbox" :checked="selected.includes({{ img.id }})" @change="toggleSelect({{ img.id }})" class="w-3.5 h-3.5 rounded border-white/70 text-blue-500 cursor-pointer shadow">
           </div>

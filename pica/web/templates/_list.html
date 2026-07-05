@@ -1,32 +1,16 @@
-<div class="ani-in flex items-center gap-3 px-3 py-2 border-b border-white/30 hover:bg-white/40 transition-all duration-300 group" data-img-id="{{ img.id }}">
+<div class="ani-in flex items-center gap-3 py-2 px-3 border-b border-white/20 hover:bg-white/40 transition-all duration-200 group" data-img-id="{{ img.id }}">
   <input type="checkbox" x-show="selectionMode" :checked="selected.includes({{ img.id }})" @change="toggleSelect({{ img.id }})" class="w-3.5 h-3.5 rounded border-gray-300 text-blue-500 cursor-pointer flex-shrink-0">
-  <a href="/preview/{{ img.id }}" target="_blank" class="flex-shrink-0">
-    <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="" loading="lazy" class="w-8 h-8 object-cover rounded-lg bg-gray-100/50 shadow-sm">
-  </a>
-  <div class="flex-1 min-w-0 flex items-center gap-3">
-    <div class="flex-1 min-w-0 flex items-center gap-1.5">
-      <span class="text-sm font-medium text-gray-700 truncate">{{ img.filename }}</span>
-      {% if img.ai_status == 'failed' %}
-      <span class="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-red-500" title="识别失败"></span>
-      {% elif img.ai_status == 'processing' %}
-      <span class="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" title="识别中"></span>
-      {% elif img.ai_status == 'pending' %}
-      <span class="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-gray-400" title="等待识别"></span>
-      {% endif %}
-    </div>
-    {% if img.work_name or img.image_type %}
-    <div class="hidden sm:flex items-center gap-1.5 flex-shrink-0">
-      {% if img.work_name %}<span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-50/80 text-blue-600 border border-blue-200/40 truncate max-w-[90px] font-medium">{{ img.work_name }}</span>{% endif %}
-      {% if img.image_type %}<span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-50/80 text-purple-600 border border-purple-200/40 font-medium">{{ img.image_type }}</span>{% endif %}
-    </div>
-    {% endif %}
-    <div class="text-[11px] text-gray-400 flex-shrink-0 hidden md:block font-medium">{{ (img.file_size/1024)|round(1) }} KB</div>
+  <div class="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer bg-gray-100/50" @click="openLightbox('/thumbnails/{{ img.md5_hash }}_1024.jpg', [], 0)">
+    <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="" loading="lazy" class="w-full h-full object-cover">
   </div>
-  <div class="flex gap-1.5 flex-shrink-0">
-    {% if img.ai_status == 'failed' %}
-    <form action="/pending/{{ img.id }}/retry-ai" method="post"><button type="submit" class="glass-btn glass-gray w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="重试AI"><i class="fa-solid fa-rotate"></i></button></form>
-    {% endif %}
-    <button @click="$dispatch('confirm-img', { id: {{ img.id }} })" class="glass-btn glass-green w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="归档"><i class="fa-solid fa-check"></i></button>
-    <form action="/pending/{{ img.id }}/reject" method="post"><button type="submit" class="glass-btn glass-red w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="驳回"><i class="fa-solid fa-xmark"></i></button></form>
+  <div class="flex-1 min-w-0 text-sm text-gray-700 truncate">{{ img.filename }}</div>
+  <div class="text-xs text-gray-400 flex-shrink-0 hidden sm:block">{{ img.work_name or '' }}</div>
+  <div class="flex items-center gap-1 flex-shrink-0">
+    <form action="/pending/{{ img.id }}/confirm" method="post" style="display:inline">
+      <input type="hidden" name="category" value="{{ (img.suggested_category_list or [''])[0] }}">
+      <input type="hidden" name="tags" value="{{ (img.suggested_tags_list or []) | join(',') }}">
+      <button type="submit" class="glass-btn glass-green w-6 h-6 rounded-full flex items-center justify-center text-[9px]" title="归档"><i class="fa-solid fa-check"></i></button>
+    </form>
+    <form action="/pending/{{ img.id }}/reject" method="post"><button type="submit" class="glass-btn glass-red w-6 h-6 rounded-full flex items-center justify-center text-[9px]" title="驳回"><i class="fa-solid fa-xmark"></i></button></form>
   </div>
 </div>

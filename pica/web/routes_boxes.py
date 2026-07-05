@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
-from pica.database import AuditLog, Image, ImageStatus, StorageBox, StorageBoxItem, log_action
+from pica.database import AuditLog, Image, ImageStatus, SimilarGroup, StorageBox, StorageBoxItem, log_action
 
 router = APIRouter()
 
@@ -164,3 +164,62 @@ async def batch_add_to_box(request: Request, db: Session = Depends(get_db)):
             log_action(db, "add_to_box", img_id, f"批量添加到储物箱: {box.name}")
     db.commit()
     return RedirectResponse(url=form.get("redirect", "/boxes"), status_code=303)
+
+
+@router.post("/boxes/{box_id}/finalize")
+async def finalize_box(request: Request, box_id: int, db: Session = Depends(get_db)):
+    """Convert a storage box into a SimilarGroup."""
+    box = db.get(StorageBox, box_id)
+    if not box:
+        return JSONResponse({"error": "box not found"}, status_code=404)
+    items = db.execute(
+        select(StorageBoxItem).where(StorageBoxItem.box_id == box_id)
+    ).scalars().all()
+    if not items:
+        return JSONResponse({"error": "box is empty"}, status_code=400)
+    image_ids = [it.image_id for it in items if it.image]
+    if not image_ids:
+        return JSONResponse({"error": "no valid images"}, status_code=400)
+    group = SimilarGroup(name=box.name, processed=0)
+    db.add(group)
+    db.flush()
+    for img_id in image_ids:
+        img = db.get(Image, img_id)
+        if img:
+            img.similar_group_id = group.id
+    # Clear the box
+    db.query(StorageBoxItem).filter_by(box_id=box_id).delete()
+    db.delete(box)
+    log_action(db, "finalize_box", details=f"收纳盒确定分组: {box.name}, {len(image_ids)} 张")
+    db.commit()
+    return JSONResponse({"success": True, "group_id": group.id})
+
+
+@router.get("/boxes/data/items")
+async def boxes_data_with_items(db: Session = Depends(get_db)):
+    """Return all boxes with their image items (for the tray)."""
+    boxes = db.execute(
+        select(StorageBox).order_by(StorageBox.sort_order, StorageBox.created_at.desc())
+    ).scalars().all()
+    result = []
+    for b in boxes:
+        items = db.execute(
+            select(StorageBoxItem).where(StorageBoxItem.box_id == b.id)
+            .order_by(StorageBoxItem.created_at.desc())
+        ).scalars().all()
+        item_list = []
+        for it in items:
+            img = it.image
+            if img:
+                item_list.append({
+                    "id": img.id,
+                    "md5_hash": img.md5_hash,
+                    "thumb_url": f"/thumbnails/{img.md5_hash}_256.jpg",
+                    "lightbox_url": f"/thumbnails/{img.md5_hash}_1024.jpg",
+                    "filename": img.original_filename or img.filename or "",
+                })
+        result.append({
+            "id": b.id, "name": b.name, "color": b.color,
+            "count": len(item_list), "items": item_list,
+        })
+    return JSONResponse({"boxes": result})

@@ -1,26 +1,18 @@
 <div class="ani-in glass-card rounded-xl overflow-hidden group relative" data-img-id="{{ img.id }}">
-  <a href="/preview/{{ img.id }}" target="_blank" class="block">
-    <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="{{ img.filename }}" loading="lazy" class="w-full aspect-square object-cover block bg-gray-100/50">
-  </a>
   <div x-show="selectionMode" class="absolute top-1.5 left-1.5 z-10">
     <input type="checkbox" :checked="selected.includes({{ img.id }})" @change="toggleSelect({{ img.id }})" class="w-3 h-3 rounded border-white/60 text-blue-500 cursor-pointer shadow">
   </div>
-  <div class="flex items-center justify-between px-1.5 py-1 border-t border-white/20 gap-0.5">
-    <div class="flex items-center gap-0.5 flex-1 min-w-0">
-      {% if img.ai_status == 'failed' %}
-      <span class="flex-shrink-0 w-1 h-1 rounded-full bg-red-500" title="识别失败"></span>
-      {% elif img.ai_status == 'processing' %}
-      <span class="flex-shrink-0 w-1 h-1 rounded-full bg-blue-500 animate-pulse" title="识别中"></span>
-      {% elif img.ai_status == 'pending' %}
-      <span class="flex-shrink-0 w-1 h-1 rounded-full bg-gray-400" title="等待识别"></span>
-      {% endif %}
-    </div>
+  <div class="cursor-pointer" @click="openLightbox('/thumbnails/{{ img.md5_hash }}_1024.jpg', [], 0)">
+    <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="{{ img.filename }}" loading="lazy" class="w-full aspect-square object-cover block bg-gray-100/50">
+  </div>
+  <div class="px-1.5 py-1 flex items-center justify-between gap-0.5 border-t border-white/20">
+    <span class="text-[9px] text-gray-400 truncate flex-1 min-w-0">{{ img.filename }}</span>
     <div class="flex items-center gap-0.5 flex-shrink-0">
-      {% if img.ai_status == 'failed' %}
-      <form action="/pending/{{ img.id }}/retry-ai" method="post"><button type="submit" class="glass-btn glass-gray w-5 h-5 rounded-full flex items-center justify-center text-[8px]" title="重试AI"><i class="fa-solid fa-rotate"></i></button></form>
-      {% endif %}
-      <button @click="$dispatch('confirm-img', { id: {{ img.id }} })" class="glass-btn glass-green w-5 h-5 rounded-full flex items-center justify-center text-[8px]" title="归档"><i class="fa-solid fa-check"></i></button>
-      <form action="/pending/{{ img.id }}/reject" method="post"><button type="submit" class="glass-btn glass-red w-5 h-5 rounded-full flex items-center justify-center text-[8px]" title="驳回"><i class="fa-solid fa-xmark"></i></button></form>
+      <form action="/pending/{{ img.id }}/confirm" method="post" style="display:inline">
+        <input type="hidden" name="category" value="{{ (img.suggested_category_list or [''])[0] }}">
+        <button type="submit" class="glass-btn glass-green w-5 h-5 rounded-full flex items-center justify-center text-[7px]" title="归档"><i class="fa-solid fa-check"></i></button>
+      </form>
+      <form action="/pending/{{ img.id }}/reject" method="post"><button type="submit" class="glass-btn glass-red w-5 h-5 rounded-full flex items-center justify-center text-[7px]" title="驳回"><i class="fa-solid fa-xmark"></i></button></form>
     </div>
   </div>
 </div>

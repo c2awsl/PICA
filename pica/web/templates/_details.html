@@ -2,13 +2,13 @@
   <td class="py-2.5 px-3 w-8">
     <input type="checkbox" x-show="selectionMode" :checked="selected.includes({{ img.id }})" @change="toggleSelect({{ img.id }})" class="w-3.5 h-3.5 rounded border-gray-300 text-blue-500 cursor-pointer">
   </td>
-  <td class="py-2 px-1.5 w-10">
+  <td class="py-2 px-1.5 w-10 cursor-pointer" @click="openLightbox('/thumbnails/{{ img.md5_hash }}_1024.jpg', [], 0)">
     <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="" loading="lazy" class="w-8 h-8 object-cover rounded-lg bg-gray-100/50 shadow-sm">
   </td>
   <td class="py-2.5 px-3"><div class="text-sm font-medium text-gray-700 truncate max-w-[200px]">{{ img.filename }}</div></td>
   <td class="py-2.5 px-3 text-sm text-gray-500">{{ img.work_name or '-' }}</td>
   <td class="py-2.5 px-3">{% if img.image_type %}<span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-50/80 text-purple-600 border border-purple-200/40 font-medium">{{ img.image_type }}</span>{% else %}<span class="text-sm text-gray-300">-</span>{% endif %}</td>
-  <td class="py-2.5 px-3 text-sm text-gray-500">{{ img.suggested_category.split(',')[0] if img.suggested_category else '-' }}</td>
+  <td class="py-2.5 px-3 text-sm text-gray-500">{{ (img.suggested_category_list or ['-'])[0] }}</td>
   <td class="py-2.5 px-3 text-sm text-gray-400 font-medium">{{ (img.file_size/1024)|round(1) }} KB</td>
   <td class="py-2.5 px-3 text-sm text-gray-400">{{ img.width }}×{{ img.height }}</td>
   <td class="py-2.5 px-3 text-sm text-gray-400 whitespace-nowrap">{{ img.created_at.strftime('%Y-%m-%d %H:%M') if img.created_at else '' }}</td>
@@ -32,7 +32,11 @@
         <button type="submit" class="glass-btn glass-gray w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="重试AI"><i class="fa-solid fa-rotate"></i></button>
       </form>
       {% endif %}
-      <button @click="$dispatch('confirm-img', { id: {{ img.id }} })" class="glass-btn glass-green w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="归档"><i class="fa-solid fa-check"></i></button>
+      <form action="/pending/{{ img.id }}/confirm" method="post" class="inline-flex items-center gap-1">
+        <input type="hidden" name="category" value="{{ (img.suggested_category_list or [''])[0] }}">
+        <input type="hidden" name="tags" value="{{ (img.suggested_tags_list or []) | join(',') }}">
+        <button type="submit" class="glass-btn glass-green w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="归档"><i class="fa-solid fa-check"></i></button>
+      </form>
       <form action="/pending/{{ img.id }}/reject" method="post" class="inline"><button type="submit" class="glass-btn glass-red w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="驳回"><i class="fa-solid fa-xmark"></i></button></form>
     </div>
   </td>

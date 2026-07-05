@@ -623,9 +623,6 @@ function pendingApp() {
       // Load overview data
       this.fetchOverview();
 
-      // Listen for confirm events from item partials
-      window.addEventListener('confirm-img', (e) => { this.openModal(e.detail.id); });
-
       // Keyboard shortcuts
       document.addEventListener('keydown', (e) => {
         if (this.modalOpen) return;

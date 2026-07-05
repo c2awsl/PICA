@@ -130,8 +130,12 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
       <div class="img-checkbox" :class="keptIds.includes({{ img.id }}) ? 'checked' : ''"
            @click.stop="toggleKeep({{ img.id }})"></div>
 
-      <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="" loading="lazy"
-        class="w-full aspect-square object-cover bg-gray-100/50">
+      <div class="cursor-pointer" draggable="true"
+           @click.stop="openLightbox('/thumbnails/{{ img.md5_hash }}_1024.jpg', [], 0)"
+           @dragstart="onDragStart($event, {id:{{ img.id }},thumb:'/thumbnails/{{ img.md5_hash }}_256.jpg',lightbox:'/thumbnails/{{ img.md5_hash }}_1024.jpg'})">
+        <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="" loading="lazy"
+          class="w-full aspect-square object-cover bg-gray-100/50">
+      </div>
 
       <div class="px-2.5 py-2">
         <div class="text-[11px] text-gray-500 truncate">{{ img.filename }}</div>

@@ -1,8 +1,8 @@
 <div class="ani-in glass-card rounded-2xl p-3 flex gap-4 group relative" data-img-id="{{ img.id }}">
   <input type="checkbox" x-show="selectionMode" :checked="selected.includes({{ img.id }})" @change="toggleSelect({{ img.id }})" class="w-3.5 h-3.5 rounded border-gray-300 text-blue-500 cursor-pointer flex-shrink-0 mt-1">
-  <a href="/preview/{{ img.id }}" target="_blank" class="flex-shrink-0">
+  <div class="flex-shrink-0 cursor-pointer" @click="openLightbox('/thumbnails/{{ img.md5_hash }}_1024.jpg', [], 0)">
     <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="" loading="lazy" class="w-24 h-24 object-cover rounded-xl bg-gray-100/50 shadow-sm">
-  </a>
+  </div>
   <div class="flex-1 min-w-0 py-0.5">
     <div class="text-sm font-semibold text-gray-800 truncate flex items-center gap-1.5">{{ img.filename }}
       {% if img.ai_status == 'pending' %}
@@ -15,20 +15,37 @@
       <span class="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-red-500" title="识别失败"></span>
       {% endif %}
     </div>
-    <div class="flex flex-wrap gap-1.5 mt-1.5">
-      {% if img.work_name %}<span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-50/80 text-blue-600 border border-blue-200/40 font-medium">{{ img.work_name }}</span>{% endif %}
-      {% if img.image_type %}<span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-50/80 text-purple-600 border border-purple-200/40 font-medium">{{ img.image_type }}</span>{% endif %}
-      {% if img.suggested_category %}<span class="text-[10px] px-2 py-0.5 rounded-full bg-orange-50/80 text-orange-600 border border-orange-200/40 font-medium">{{ img.suggested_category.split(',')[0] }}</span>{% endif %}
-    </div>
-    <div class="text-xs text-gray-400 mt-1.5 font-medium">{{ img.width }}×{{ img.height }} · {{ (img.file_size/1024)|round(1) }} KB</div>
-    <div class="flex gap-1.5 mt-2">
-      {% if img.ai_status == 'failed' %}
-      <form action="/pending/{{ img.id }}/retry-ai" method="post" class="inline-flex items-center gap-1">
-        <button type="submit" class="glass-btn glass-gray w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="重试AI"><i class="fa-solid fa-rotate"></i></button>
-      </form>
-      {% endif %}
-      <button @click="$dispatch('confirm-img', { id: {{ img.id }} })" class="glass-btn glass-green w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="归档"><i class="fa-solid fa-check"></i></button>
-      <form action="/pending/{{ img.id }}/reject" method="post"><button type="submit" class="glass-btn glass-red w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="驳回"><i class="fa-solid fa-xmark"></i></button></form>
-    </div>
+    <!-- Inline confirm form -->
+    <form action="/pending/{{ img.id }}/confirm" method="post"
+          x-data="{cat:'{{ (img.suggested_category_list or [''])[0] }}',tags:{{ img.suggested_tags_list | tojson }}}">
+      <input type="hidden" name="category" :value="cat">
+      <input type="hidden" name="tags" :value="tags.join(',')">
+      <input type="hidden" name="work" value="{{ img.work_name or '' }}">
+      <input type="hidden" name="image_type" value="{{ img.image_type or '' }}">
+      <div class="flex flex-wrap gap-1.5 mt-1.5">
+        {% if img.work_name %}
+        <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-50/80 text-blue-600 border border-blue-200/40 font-medium">{{ img.work_name }}</span>
+        {% endif %}
+        {% if img.image_type %}
+        <span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-50/80 text-purple-600 border border-purple-200/40 font-medium">{{ img.image_type }}</span>
+        {% endif %}
+        {% for c in img.suggested_category_list %}
+        <span @click="cat='{{ c }}'" :class="'chip chip-cat ' + (cat==='{{ c }}'?'selected':'')" style="font-size:10px;padding:1px 8px">{{ c }}</span>
+        {% endfor %}
+        {% for t in img.suggested_tags_list %}
+        <span @click="tags=tags.includes('{{ t }}')?tags.filter(x=>x!=='{{ t }}'):[...tags,'{{ t }}']" :class="'chip chip-tag ' + (tags.includes('{{ t }}')?'selected':'')" style="font-size:10px;padding:1px 8px">{{ t }}</span>
+        {% endfor %}
+      </div>
+      <div class="text-xs text-gray-400 mt-1.5 font-medium">{{ img.width }}×{{ img.height }} · {{ (img.file_size/1024)|round(1) }} KB</div>
+      <div class="flex gap-1.5 mt-2">
+        {% if img.ai_status == 'failed' %}
+        <form action="/pending/{{ img.id }}/retry-ai" method="post" class="inline-flex items-center gap-1">
+          <button type="submit" class="glass-btn glass-gray w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="重试AI"><i class="fa-solid fa-rotate"></i></button>
+        </form>
+        {% endif %}
+        <button type="submit" class="glass-btn glass-green w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="归档"><i class="fa-solid fa-check"></i></button>
+        <form action="/pending/{{ img.id }}/reject" method="post"><button type="submit" class="glass-btn glass-red w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="驳回"><i class="fa-solid fa-xmark"></i></button></form>
+      </div>
+    </form>
   </div>
 </div>

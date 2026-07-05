@@ -22,7 +22,7 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
 {% endblock %}
 
 {% block content %}
-<div x-data="groupApp()" x-init="init()" class="p-5 min-h-screen" style="background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+<div x-data="{showProcessed: {{ 'true' if show_processed else 'false' }}}" class="p-5 min-h-screen" style="background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
   <div class="flex items-center justify-between mb-6">
     <div class="flex items-center gap-3">
       <div class="w-9 h-9 rounded-full bg-purple-50 flex items-center justify-center text-purple-500 shadow-sm">
@@ -77,7 +77,7 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
       <div class="flex gap-1.5 mb-3 text-[10px] flex-wrap">
         {% for status, cnt in gd.statuses.items() %}
         <span class="px-2 py-0.5 rounded-full {{ 'bg-blue-50/80 text-blue-600' if status == 'pending' else 'bg-green-50/80 text-green-600' if status == 'confirmed' else 'bg-gray-50/80 text-gray-500' }} border border-white/30">
-          {{ {'pending':'待确认','confirmed':'已归档','rejected':'已驳回'}.get(status, status) }}: {{ cnt }}
+          {{ {'pending':'待确认','confirmed':'已归档','rejected':'已驳回','recycled':'回收站'}.get(status, status) }}: {{ cnt }}
         </span>
         {% endfor %}
       </div>
@@ -85,11 +85,13 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
 
       <div class="grid grid-cols-5 gap-1.5">
         {% for img in gd.images %}
-        <a href="/{% if img.status.value == 'confirmed' %}archive{% else %}pending{% endif %}/{{ img.id }}" class="relative group/img">
+        <div class="relative group/img cursor-pointer" draggable="true"
+             @click="openLightbox('/thumbnails/{{ img.md5_hash }}_1024.jpg', [], 0)"
+             @dragstart="onDragStart($event, {id:{{ img.id }},thumb:'/thumbnails/{{ img.md5_hash }}_256.jpg',lightbox:'/thumbnails/{{ img.md5_hash }}_1024.jpg'})">
           <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="" loading="lazy"
             class="w-full aspect-square object-cover rounded-lg bg-gray-100/50 border border-white/30 group-hover/img:border-blue-400 transition-all group-hover/img:shadow-md">
           <div class="absolute inset-0 bg-black/0 group-hover/img:bg-black/10 rounded-lg transition-all"></div>
-        </a>
+        </div>
         {% endfor %}
       </div>
 
@@ -111,12 +113,4 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
   </div>
   {% endif %}
 </div>
-
-<script>
-function groupApp() {
-  return {
-    init() {}
-  };
-}
-</script>
 {% endblock %}

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>PICA — {% block title %}图片管理{% endblock %}</title>
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="https://unpkg.com/@alpinejs/collapse@3.14.0" defer></script>
     <script src="https://unpkg.com/alpinejs@3.14.0" defer></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
@@ -243,13 +244,124 @@
             .nav-tabs a { padding: 4px 8px; font-size: 10px; }
         }
 
+        /* ═══════════════════════════════════════════
+           Lightbox
+           ═══════════════════════════════════════════ */
+        .lightbox-overlay {
+            position: fixed; inset: 0; z-index: 1000;
+            background: rgba(0,0,0,0.88); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.25s ease;
+        }
+        .lightbox-overlay.show { opacity: 1; }
+        .lightbox-overlay .lb-close {
+            position: absolute; top: 20px; right: 20px; z-index: 1001;
+            width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer;
+            background: rgba(255,255,255,0.15); color: #fff;
+            font-size: 22px; display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s;
+        }
+        .lightbox-overlay .lb-close:hover { background: rgba(255,255,255,0.25); }
+        .lightbox-overlay .lb-nav {
+            position: absolute; top: 50%; transform: translateY(-50%); z-index: 1001;
+            width: 48px; height: 48px; border-radius: 50%; border: none; cursor: pointer;
+            background: rgba(255,255,255,0.1); color: #fff;
+            font-size: 20px; display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s;
+        }
+        .lightbox-overlay .lb-nav:hover { background: rgba(255,255,255,0.2); }
+        .lightbox-overlay .lb-prev { left: 20px; }
+        .lightbox-overlay .lb-next { right: 20px; }
+        .lightbox-overlay img {
+            max-width: 92vw; max-height: 92vh; object-fit: contain;
+            border-radius: 8px; box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+            user-select: none; -webkit-user-drag: none;
+        }
+        .lightbox-overlay .lb-counter {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 500;
+            letter-spacing: 0.04em;
+        }
+
+        /* ═══════════════════════════════════════════
+           Chip / Pill (for inline category/tag selection)
+           ═══════════════════════════════════════════ */
+        .chip {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 12px; border-radius: 20px; font-size: 11px; font-weight: 500;
+            cursor: pointer; transition: all 0.2s; border: 1.5px solid transparent;
+            user-select: none; line-height: 1.4;
+        }
+        .chip:hover { transform: translateY(-1px); }
+        .chip:active { transform: scale(0.96); }
+        .chip-cat {
+            background: rgba(0,122,255,0.08); color: #007aff; border-color: rgba(0,122,255,0.15);
+        }
+        .chip-cat.selected { background: #007aff; color: #fff; border-color: #007aff; }
+        .chip-cat.selected i { color: #fff; }
+        .chip-tag {
+            background: rgba(175,82,222,0.08); color: #7b2f9e; border-color: rgba(175,82,222,0.15);
+        }
+        .chip-tag.selected { background: #7b2f9e; color: #fff; border-color: #7b2f9e; }
+        .chip-tag.selected i { color: #fff; }
+        .chip i { font-size: 9px; opacity: 0.5; }
+        .chip.selected i { opacity: 1; }
+
+        /* ═══════════════════════════════════════════
+           Inline Edit
+           ═══════════════════════════════════════════ */
+        .inline-edit { display: none; margin-top: 8px; }
+        .inline-edit.show { display: block; }
+        .inline-edit input, .inline-edit select {
+            height: 30px; padding: 0 10px; font-size: 12px;
+            border: 1px solid rgba(0,0,0,0.08); border-radius: 6px; outline: none;
+            font-family: inherit; color: #1d1d1f; width: 100%; margin-bottom: 6px;
+        }
+        .inline-edit input:focus { border-color: #007aff; box-shadow: 0 0 0 2px rgba(0,122,255,0.12); }
+
+        /* ── Image hover action overlay ── */
+        .img-hover-actions {
+            position: absolute; inset: 0; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            background: rgba(0,0,0,0.35); opacity: 0; transition: opacity 0.2s;
+        }
+        .img-hover-actions:hover { opacity: 1; }
+        .img-hover-actions button, .img-hover-actions a {
+            width: 32px; height: 32px; border-radius: 50%; border: none;
+            background: rgba(255,255,255,0.9); color: #1d1d1f; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; transition: all 0.2s; text-decoration: none;
+        }
+        .img-hover-actions button:hover, .img-hover-actions a:hover {
+            background: #fff; transform: scale(1.08);
+        }
+
         /* ── Page padding helpers ── */
         .page-pad { padding: 24px 32px 48px; }
         @media (max-width: 768px) { .page-pad { padding: 16px; } }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
-<body>
+<body x-data="lightboxStore()">
+    <!-- ═══ Global Lightbox ═══ -->
+    <template x-teleport="body">
+        <div class="lightbox-overlay" :class="show ? 'show' : ''"
+             x-show="show" @click.self="close" @keydown.escape.window="close"
+             x-transition:enter="transition ease-out duration-250"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             tabindex="-1">
+            <button class="lb-close" @click="close">&times;</button>
+            <button class="lb-nav lb-prev" x-show="images.length > 1" @click="prev">&lsaquo;</button>
+            <img :src="src" :alt="'Image ' + (index + 1)">
+            <button class="lb-nav lb-next" x-show="images.length > 1" @click="next">&rsaquo;</button>
+            <div class="lb-counter" x-show="images.length > 1" x-text="(index + 1) + ' / ' + images.length"></div>
+        </div>
+    </template>
+
     <!-- macOS Unified Titlebar -->
     <header class="mac-titlebar">
         <div class="traffic-lights">
@@ -306,5 +418,51 @@
     <main class="page">
         {% block content %}{% endblock %}
     </main>
+
+    {% include '_box_tray.html' %}
+
+    <script>
+    function openLightbox(url, images, index) {
+        const el = document.querySelector('[x-data]');
+        if (el && el.__x) el.__x.$data.open(url, images, index);
+    }
+    function onDragStart(e, data) {
+        e.dataTransfer.setData('text/plain', JSON.stringify(data));
+        e.dataTransfer.effectAllowed = 'copy';
+        if (e.target) e.target.style.opacity = '0.6';
+    }
+    document.addEventListener('dragend', (e) => {
+        if (e.target) e.target.style.opacity = '';
+    });
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('lightboxStore', () => ({
+            show: false,
+            src: '',
+            images: [],
+            index: 0,
+            open(url, allImages, idx) {
+                this.src = url;
+                this.images = allImages || [];
+                this.index = idx || 0;
+                this.show = true;
+                document.body.style.overflow = 'hidden';
+            },
+            close() {
+                this.show = false;
+                document.body.style.overflow = '';
+            },
+            prev() {
+                if (!this.images.length) return;
+                this.index = (this.index - 1 + this.images.length) % this.images.length;
+                this.src = this.images[this.index];
+            },
+            next() {
+                if (!this.images.length) return;
+                this.index = (this.index + 1) % this.images.length;
+                this.src = this.images[this.index];
+            }
+        }));
+    });
+    </script>
 </body>
 </html>
