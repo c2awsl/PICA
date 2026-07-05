@@ -34,39 +34,57 @@ class Recognizer:
             session.flush()
         return tag
 
+    def _get_source_folder(self, filepath: str) -> str | None:
+        """Extract source folder name from file path as a category hint."""
+        if not filepath:
+            return None
+        source = Path(filepath)
+        try:
+            rel = source.relative_to(self.cfg.sync_dir)
+            if rel.parts:
+                return rel.parts[0]
+        except (ValueError, TypeError):
+            pass
+        for src in getattr(self.cfg, "scan_sources", []):
+            try:
+                rel = source.relative_to(Path(src))
+                if rel.parts:
+                    return rel.parts[0]
+            except (ValueError, TypeError, AttributeError):
+                pass
+        return source.parent.name or None
+
     def save_result_to_db(self, image_id: int, result: dict, session: Session):
         """Write AI recognition result to the category/tag junction tables."""
-        # Ensure the old JSON fields are also set for backward compat
         from pica.database import Image as ImageModel
         img = session.query(ImageModel).filter_by(id=image_id).first()
         if not img:
             return
 
-        # Clear old links for this source
         session.query(ImageCategory).filter_by(image_id=image_id, source="suggested").delete()
         session.query(ImageTag).filter_by(image_id=image_id, source="suggested").delete()
 
-        # Write categories
-        for name in result.get("category", []):
+        categories = result.get("category", [])
+        folder = self._get_source_folder(img.filepath)
+        if folder and folder not in categories:
+            categories = [folder] + categories
+
+        for name in categories:
             if name and isinstance(name, str):
                 cat = self._ensure_category(name.strip(), session)
                 session.add(ImageCategory(image_id=image_id, category_id=cat.id, source="suggested"))
 
-        # Write tags
         for name in result.get("tags", []):
             if name and isinstance(name, str):
                 tag = self._ensure_tag(name.strip(), session)
                 session.add(ImageTag(image_id=image_id, tag_id=tag.id, source="suggested"))
 
-        # Text detection
         img.has_text = 1 if result.get("has_text") else 0
         if result.get("extracted_text"):
             img.extracted_text = str(result.get("extracted_text"))
 
-        # Also update old JSON fields for backward compat
-        img.suggested_category = json.dumps(result.get("category", []), ensure_ascii=False)
+        img.suggested_category = json.dumps(categories, ensure_ascii=False)
         img.suggested_tags = json.dumps(result.get("tags", []), ensure_ascii=False)
-
         session.flush()
 
     async def recognize(self, image_path: str | Path) -> dict | None:
