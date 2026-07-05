@@ -1,11 +1,11 @@
 from pathlib import Path
 
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from pica.config import Config
 from pica.database import get_engine
+from pica.web.routes_thumbnail import router as thumbnail_router
 from pica.web.routes_pending import router as pending_router
 from pica.web.routes_archive import router as archive_router
 from pica.web.routes_stats import router as stats_router
@@ -29,8 +29,7 @@ def create_app(cfg: Config, worker=None, cfg_file_path: Path | None = None) -> F
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
     app.state.templates = templates
 
-    app.mount("/thumbnails", StaticFiles(directory=str(cfg.thumbnails_dir)), name="thumbnails")
-
+    app.include_router(thumbnail_router, prefix="")
     app.include_router(pending_router, prefix="")
     app.include_router(archive_router, prefix="")
     app.include_router(stats_router, prefix="")
