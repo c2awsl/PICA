@@ -106,6 +106,8 @@ def scan_sources(cfg: Config):
                 dest = copy_to_pending(str(file_path), file_hash, cfg)
                 if dest:
                     width, height = _get_size(file_path)
+                    from pica.thumbnail import generate_thumbnail
+                    generate_thumbnail(dest, file_hash, cfg)
                     img = Image(
                         filename=file_path.name,
                         filepath=str(file_path),

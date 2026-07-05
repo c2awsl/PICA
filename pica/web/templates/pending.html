@@ -7,7 +7,10 @@
 <div class="grid">
     {% for img in images %}
     <div class="img-card" x-data="{ open: false }">
-        <img src="/thumbnails/{{ img.md5_hash }}_256.jpg?t={{ img.created_at.timestamp() if img.created_at else '' }}" alt="{{ img.filename }}" loading="lazy" style="cursor:pointer;" @click="open = true">
+        <div style="width:100%;height:200px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;position:relative;" @click="open = true">
+            <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="{{ img.filename }}" loading="lazy" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;" onerror="this.style.display='none'" onload="this.style.display=''">
+            <span style="font-size:40px;color:#ccc;pointer-events:none;">📷</span>
+        </div>
         <div class="info">
             {% if img.suggested_category_list %}
             <div>
@@ -38,7 +41,10 @@
         <!-- Modal -->
         <div x-show="open" style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;display:flex;align-items:center;justify-content:center;" x-cloak @click.self="open = false">
             <div style="background:#fff;border-radius:12px;max-width:720px;width:90%;max-height:90vh;overflow-y:auto;padding:24px;">
-                <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="" style="width:100%;max-height:50vh;object-fit:contain;border-radius:8px;background:#f0f0f0;">
+                <div style="width:100%;max-height:50vh;border-radius:8px;overflow:hidden;background:#f0f0f0;position:relative;display:flex;align-items:center;justify-content:center;min-height:100px;">
+                    <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="" loading="lazy" style="max-width:100%;max-height:50vh;object-fit:contain;" onerror="this.style.display='none'" onload="this.style.display=''">
+                    <span style="font-size:48px;color:#ccc;position:absolute;pointer-events:none;">📷</span>
+                </div>
                 <form action="/pending/{{ img.id }}/confirm" method="post" style="margin-top:16px;">
                     <div style="margin-bottom:12px;">
                         <label style="font-weight:600;font-size:14px;">分类（逗号分隔）</label>

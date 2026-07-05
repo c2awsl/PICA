@@ -5,7 +5,10 @@
     <a href="javascript:history.back()" style="display:inline-block;margin-bottom:16px;color:#1a73e8;text-decoration:none;">&larr; 返回</a>
     <div style="display:grid;grid-template-columns:1fr 320px;gap:24px;">
         <div>
-            <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="" style="width:100%;border-radius:8px;background:#f0f0f0;">
+            <div style="width:100%;border-radius:8px;overflow:hidden;background:#f0f0f0;position:relative;display:flex;align-items:center;justify-content:center;min-height:200px;">
+                <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="" style="max-width:100%;border-radius:8px;" onerror="this.style.display='none'" onload="this.style.display=''">
+                <span style="font-size:64px;color:#ccc;position:absolute;pointer-events:none;">📷</span>
+            </div>
         </div>
         <div>
             <h3 style="margin-bottom:12px;">{{ img.filename }}</h3>
