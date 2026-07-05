@@ -1,196 +1,383 @@
 {% extends "base.html" %}
 {% block title %}待确认{% endblock %}
-{% block content %}
-<h2 style="margin-bottom:20px;">
-    待确认图片
-    <span style="font-size:14px;color:#999;font-weight:400;">({{ images|length }} 张)</span>
-    <span style="font-size:14px;font-weight:400;margin-left:12px;">
-        <a href="/pending?group=none" class="badge {% if group_by == 'none' %}badge-active{% else %}badge-link{% endif %}" style="text-decoration:none;">全部</a>
-        <a href="/pending?group=sim" class="badge {% if group_by == 'sim' %}badge-active{% else %}badge-link{% endif %}" style="text-decoration:none;margin-left:4px;">按近似分组</a>
-    </span>
-</h2>
-
-{% if groups is defined and groups %}
-    {% for gid, group_images in groups.items() %}
-    <div class="card" style="margin-bottom:20px;padding:16px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-            <h3 style="font-size:15px;font-weight:600;">
-                {% if gid == 0 %}
-                ⚡ 独立图片
-                {% else %}
-                📁 相近组 #{{ gid }}
-                <span style="font-size:12px;color:#999;font-weight:400;">({{ group_images|length }} 张)</span>
-                {% endif %}
-            </h3>
-            {% if gid != 0 %}
-            <form action="/pending/batch-confirm" method="post" style="display:flex;gap:8px;align-items:center;">
-                <input type="hidden" name="redirect" value="/pending?group=sim">
-                {% for img in group_images %}
-                <input type="hidden" name="image_ids" value="{{ img.id }}">
-                {% endfor %}
-                <input type="text" name="category" placeholder="归档分类" style="width:140px;padding:6px 10px;font-size:12px;border:1px solid #ddd;border-radius:6px;">
-                <button type="submit" class="btn btn-primary" style="font-size:12px;padding:6px 14px;">批量确认归档</button>
-            </form>
-            {% endif %}
-        </div>
-        <div class="grid">
-            {% for img in group_images %}
-            <div class="img-card" x-data="{ open: false }">
-                <div style="width:100%;height:180px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;position:relative;" @click="open = true">
-                    <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="{{ img.filename }}" loading="lazy" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;" onerror="this.style.display='none'" onload="this.style.display=''">
-                    <span style="font-size:36px;color:#ccc;pointer-events:none;">📷</span>
-                </div>
-                <div class="info">
-                    {% if img.work_name %}
-                    <div style="font-size:12px;color:#e65100;margin-bottom:4px;">🎬 {{ img.work_name }}</div>
-                    {% endif %}
-                    {% if img.image_type %}
-                    <div style="font-size:11px;color:#999;margin-bottom:4px;">{{ img.image_type }}</div>
-                    {% endif %}
-                    {% if img.suggested_category_list %}
-                    <div>
-                        {% for cat in img.suggested_category_list[:2] %}
-                        <span class="badge" style="background:#e8f0fe;color:#1a73e8;margin-right:3px;">{{ cat }}</span>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                    {% if img.suggested_tags_list %}
-                    <div class="tags" style="margin-top:4px;">
-                        {% for tag in img.suggested_tags_list[:3] %}
-                        <span style="color:#999;font-size:11px;">#{{ tag }}</span>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                    <div style="margin-top:8px;display:flex;gap:4px;">
-                        <button class="btn btn-success" style="flex:1;font-size:11px;padding:5px 8px;" @click="open = true">确认</button>
-                        <form action="/pending/{{ img.id }}/reject" method="post" style="flex:1;" onsubmit="return confirm('确定驳回？')">
-                            <button class="btn btn-danger" style="width:100%;font-size:11px;padding:5px 8px;">驳回</button>
-                        </form>
-                    </div>
-                    <div style="font-size:10px;color:#bbb;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ img.filename }}</div>
-                </div>
-
-                <div x-show="open" style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;display:flex;align-items:center;justify-content:center;" x-cloak @click.self="open = false">
-                    <div style="background:#fff;border-radius:12px;max-width:720px;width:90%;max-height:90vh;overflow-y:auto;padding:24px;">
-                        <div style="width:100%;max-height:50vh;border-radius:8px;overflow:hidden;background:#f0f0f0;position:relative;display:flex;align-items:center;justify-content:center;min-height:100px;">
-                            <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="" loading="lazy" style="max-width:100%;max-height:50vh;object-fit:contain;" onerror="this.style.display='none'" onload="this.style.display=''">
-                            <span style="font-size:48px;color:#ccc;position:absolute;pointer-events:none;">📷</span>
-                        </div>
-                        {% if img.work_name or img.image_type %}
-                        <div style="margin-top:12px;display:flex;gap:8px;font-size:13px;color:#666;">
-                            {% if img.work_name %}<span>🎬 {{ img.work_name }}</span>{% endif %}
-                            {% if img.image_type %}<span>📋 {{ img.image_type }}</span>{% endif %}
-                        </div>
-                        {% endif %}
-                        <form action="/pending/{{ img.id }}/confirm" method="post" style="margin-top:12px;">
-                            <div style="margin-bottom:10px;">
-                                <label style="font-weight:600;font-size:14px;">分类（逗号分隔）</label>
-                                <input type="text" name="category" value="{{ img.suggested_category_list|join(', ') }}" style="width:100%;margin-top:4px;">
-                            </div>
-                            <div style="margin-bottom:14px;">
-                                <label style="font-weight:600;font-size:14px;">标签（逗号分隔）</label>
-                                <textarea name="tags" rows="2" style="width:100%;margin-top:4px;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;">{{ img.suggested_tags_list|join(', ') }}</textarea>
-                            </div>
-                            <div style="display:flex;gap:8px;justify-content:flex-end;">
-                                <button type="button" class="btn btn-ghost" @click="open = false">取消</button>
-                                <button type="submit" class="btn btn-primary">确认归档</button>
-                            </div>
-                        </form>
-                        <form action="/pending/{{ img.id }}/reject" method="post" style="margin-top:8px;display:flex;justify-content:flex-end;">
-                            <button class="btn btn-danger" style="font-size:12px;padding:6px 14px;">驳回此图片</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endfor %}
-{% elif images %}
-<div class="grid">
-    {% for img in images %}
-    <div class="img-card" x-data="{ open: false }">
-        <div style="width:100%;height:200px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;position:relative;" @click="open = true">
-            <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="{{ img.filename }}" loading="lazy" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;" onerror="this.style.display='none'" onload="this.style.display=''">
-            <span style="font-size:40px;color:#ccc;pointer-events:none;">📷</span>
-        </div>
-        <div class="info">
-            {% if img.work_name %}
-            <div style="font-size:12px;color:#e65100;margin-bottom:4px;">🎬 {{ img.work_name }}</div>
-            {% endif %}
-            {% if img.image_type %}
-            <div style="font-size:11px;color:#999;margin-bottom:4px;">{{ img.image_type }}</div>
-            {% endif %}
-            {% if img.suggested_category_list %}
-            <div>
-                {% for cat in img.suggested_category_list %}
-                <span class="badge" style="background:#e8f0fe;color:#1a73e8;margin-right:4px;">{{ cat }}</span>
-                {% endfor %}
-            </div>
-            {% endif %}
-            {% if img.suggested_tags_list %}
-            <div class="tags" style="margin-top:6px;">
-                {% for tag in img.suggested_tags_list[:5] %}
-                <span style="color:#999;">#{{ tag }}</span>{% if not loop.last %} {% endif %}
-                {% endfor %}
-                {% if img.suggested_tags_list|length > 5 %}
-                <span style="color:#ccc;">+{{ img.suggested_tags_list|length - 5 }}</span>
-                {% endif %}
-            </div>
-            {% endif %}
-            <div style="margin-top:10px;display:flex;gap:6px;">
-                <button class="btn btn-success" style="flex:1;font-size:12px;padding:6px 10px;" @click="open = true">确认</button>
-                <form action="/pending/{{ img.id }}/reject" method="post" style="flex:1;" onsubmit="return confirm('确定驳回？')">
-                    <button class="btn btn-danger" style="width:100%;font-size:12px;padding:6px 10px;">驳回</button>
-                </form>
-            </div>
-            <div style="font-size:11px;color:#bbb;margin-top:6px;">{{ img.filename }}</div>
-        </div>
-
-        <div x-show="open" style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;display:flex;align-items:center;justify-content:center;" x-cloak @click.self="open = false">
-            <div style="background:#fff;border-radius:12px;max-width:720px;width:90%;max-height:90vh;overflow-y:auto;padding:24px;">
-                <div style="width:100%;max-height:50vh;border-radius:8px;overflow:hidden;background:#f0f0f0;position:relative;display:flex;align-items:center;justify-content:center;min-height:100px;">
-                    <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="" loading="lazy" style="max-width:100%;max-height:50vh;object-fit:contain;" onerror="this.style.display='none'" onload="this.style.display=''">
-                    <span style="font-size:48px;color:#ccc;position:absolute;pointer-events:none;">📷</span>
-                </div>
-                {% if img.work_name or img.image_type %}
-                <div style="margin-top:12px;display:flex;gap:8px;font-size:13px;color:#666;">
-                    {% if img.work_name %}<span>🎬 {{ img.work_name }}</span>{% endif %}
-                    {% if img.image_type %}<span>📋 {{ img.image_type }}</span>{% endif %}
-                </div>
-                {% endif %}
-                <form action="/pending/{{ img.id }}/confirm" method="post" style="margin-top:12px;">
-                    <div style="margin-bottom:10px;">
-                        <label style="font-weight:600;font-size:14px;">分类（逗号分隔）</label>
-                        <input type="text" name="category" value="{{ img.suggested_category_list|join(', ') }}" style="width:100%;margin-top:4px;">
-                    </div>
-                    <div style="margin-bottom:14px;">
-                        <label style="font-weight:600;font-size:14px;">标签（逗号分隔）</label>
-                        <textarea name="tags" rows="2" style="width:100%;margin-top:4px;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;">{{ img.suggested_tags_list|join(', ') }}</textarea>
-                    </div>
-                    <div style="display:flex;gap:8px;justify-content:flex-end;">
-                        <button type="button" class="btn btn-ghost" @click="open = false">取消</button>
-                        <button type="submit" class="btn btn-primary">确认归档</button>
-                    </div>
-                </form>
-                <form action="/pending/{{ img.id }}/reject" method="post" style="margin-top:8px;display:flex;justify-content:flex-end;">
-                    <button class="btn btn-danger" style="font-size:12px;padding:6px 14px;">驳回此图片</button>
-                </form>
-            </div>
-        </div>
-    </div>
-    {% endfor %}
-</div>
-{% else %}
-<div class="empty">
-    <p style="font-size:48px;margin-bottom:12px;">📷</p>
-    <p>暂无待确认图片</p>
-    <p style="font-size:13px;color:#bbb;margin-top:6px;">同步图片到 <code>sync_dir/</code> 后会自动触发识别</p>
-</div>
-{% endif %}
-
+{% block extra_head %}
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  corePlugins: { preflight: false },
+  theme: {
+    extend: {
+      fontFamily: { sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'] },
+      borderRadius: { xl: '0.75rem', '2xl': '1rem', '3xl': '1.5rem' },
+    }
+  }
+}
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
 <style>
-.badge-link { background:#f0f0f0; color:#666; padding:4px 10px; border-radius:12px; font-size:12px; }
-.badge-active { background:#1a73e8; color:#fff; padding:4px 10px; border-radius:12px; font-size:12px; }
+html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f5f5f7; }
+
+/* ── Glassmorphism base ── */
+.glass { background: rgba(255,255,255,0.65); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); }
+.glass-sm { background: rgba(255,255,255,0.55); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+.glass-heavy { background: rgba(255,255,255,0.8); backdrop-filter: blur(60px); -webkit-backdrop-filter: blur(60px); }
+
+/* ── Glass action buttons ── */
+.glass-btn {
+  cursor: pointer; border: none; outline: none;
+  transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.25);
+}
+.glass-btn:hover { transform: scale(1.12); box-shadow: 0 8px 40px rgba(0,0,0,0.1); }
+.glass-btn:active { transform: scale(0.92); }
+
+.glass-green {
+  background: rgba(52,199,89,0.2); color: #1a6a32;
+}
+.glass-green:hover { background: rgba(52,199,89,0.92); color: #fff; box-shadow: 0 8px 32px rgba(52,199,89,0.3); }
+
+.glass-red {
+  background: rgba(255,69,58,0.2); color: #9b1c1c;
+}
+.glass-red:hover { background: rgba(255,69,58,0.92); color: #fff; box-shadow: 0 8px 32px rgba(255,69,58,0.3); }
+
+.glass-blue {
+  background: rgba(0,122,255,0.2); color: #003d7a;
+}
+.glass-blue:hover { background: rgba(0,122,255,0.92); color: #fff; box-shadow: 0 8px 32px rgba(0,122,255,0.3); }
+
+.glass-gray {
+  background: rgba(0,0,0,0.04); color: #555;
+}
+.glass-gray:hover { background: rgba(0,0,0,0.08); color: #333; }
+
+/* ── Glass card ── */
+.glass-card {
+  background: rgba(255,255,255,0.72); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 2px 20px rgba(0,0,0,0.04);
+}
+
+/* ── Toolbar buttons (pill style) ── */
+.toolbar-btn {
+  height: 34px; padding: 0 14px; display: inline-flex; align-items: center; gap: 6px;
+  border-radius: 999px; font-size: 12px; font-weight: 500; cursor: pointer; border: none; outline: none;
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  background: rgba(0,0,0,0.04); color: #555;
+}
+.toolbar-btn:hover { background: rgba(0,0,0,0.08); transform: scale(1.03); }
+.toolbar-btn:active { transform: scale(0.96); }
+.toolbar-btn-active { background: rgba(0,122,255,0.15); color: #007aff; }
+.toolbar-btn-active:hover { background: rgba(0,122,255,0.22); }
+
+/* ── Dropdown menu (Apple style) ── */
+.apple-dropdown {
+  background: rgba(255,255,255,0.85); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
+  border: 1px solid rgba(0,0,0,0.06); border-radius: 14px; box-shadow: 0 8px 40px rgba(0,0,0,0.1);
+  padding: 4px; min-width: 180px;
+}
+.apple-dropdown button {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 12px; border-radius: 8px;
+  font-size: 12px; color: #333; transition: all 0.2s; border: none; background: transparent; cursor: pointer;
+}
+.apple-dropdown button:hover { background: rgba(0,122,255,0.08); }
+
+/* ── Search field (Apple style) ── */
+.apple-search {
+  width: 100%; height: 36px; padding: 0 14px 0 36px; font-size: 13px;
+  background: rgba(120,120,128,0.08); border: 1px solid rgba(120,120,128,0.12);
+  border-radius: 10px; outline: none; transition: all 0.3s;
+}
+.apple-search:focus { background: rgba(255,255,255,0.95); border-color: rgba(0,122,255,0.4); box-shadow: 0 0 0 3px rgba(0,122,255,0.15); }
+
+/* ── Layout helpers ── */
+.v-list>div:nth-child(even) { background: rgba(0,0,0,0.02); }
+.v-list>div:hover { background: rgba(0,122,255,0.04); }
+.masonry { column-count: 4; column-gap: 12px; }
+.masonry>div { break-inside: avoid; }
+@media (max-width: 1200px) { .masonry { column-count: 3; } }
+@media (max-width: 900px) { .masonry { column-count: 2; } }
+@media (max-width: 600px) { .masonry { column-count: 1; } }
+
+/* ── Entrance animation ── */
+.ani-in { animation: fadeUp 0.4s cubic-bezier(0.25,0.46,0.45,0.94) both; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.ani-in-d1 { animation-delay: 0.05s; }
+.ani-in-d2 { animation-delay: 0.1s; }
+.ani-in-d3 { animation-delay: 0.15s; }
+.ani-in-d4 { animation-delay: 0.2s; }
 </style>
+{% endblock %}
+
+{% block content %}
+<div x-data="pendingApp()" class="min-h-screen" style="background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+
+  <!-- ═══ Glass Toolbar ═══ -->
+  <div class="glass-heavy sticky top-0 z-30 border-b border-white/30 px-5 py-3 flex items-center gap-3 select-none">
+
+    <!-- Nav arrows -->
+    <div class="flex items-center gap-0.5 text-gray-400 text-xs">
+      <button onclick="window.history.back()" class="w-7 h-7 rounded-full hover:bg-black/5 transition-colors flex items-center justify-center"><i class="fa-solid fa-chevron-left"></i></button>
+      <button onclick="window.history.forward()" class="w-7 h-7 rounded-full hover:bg-black/5 transition-colors flex items-center justify-center"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+
+    <!-- Center search -->
+    <div class="flex-1 flex justify-center max-w-lg mx-auto">
+      <div class="relative w-full">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"></i>
+        <input type="search" x-model="searchText" @input.debounce="doSearch" placeholder="搜索"
+          class="apple-search">
+        <button x-show="searchText" @click="searchText='';doSearch()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm bg-white/60 rounded-full w-5 h-5 flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Right toolbar items -->
+    <div class="flex items-center gap-2">
+
+      <!-- View mode -->
+      <div class="relative" x-data="{ open: false }" @click.outside="open=false">
+        <button @click="open=!open" class="toolbar-btn" :class="{'toolbar-btn-active':open}">
+          <i class="fa-solid" :class="viewIcon"></i>
+          <span x-text="viewLabel" class="hidden sm:inline"></span>
+          <i class="fa-solid fa-chevron-down text-[9px] opacity-50"></i>
+        </button>
+        <div x-show="open" @click.outside="open=false" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" class="absolute right-0 top-full mt-2 apple-dropdown z-40">
+          <template x-for="v in views" :key="v.id">
+            <button @click="switchView(v.id); open=false" :class="view===v.id ? 'bg-blue-50 text-blue-600 font-medium' : ''">
+              <i class="fa-solid w-4 text-center" :class="v.icon"></i>
+              <span x-text="v.label"></span>
+            </button>
+          </template>
+        </div>
+      </div>
+
+      <!-- Sort -->
+      <div class="relative" x-data="{ open: false }" @click.outside="open=false">
+        <button @click="open=!open" class="toolbar-btn" :class="{'toolbar-btn-active':open}">
+          <i class="fa-solid fa-arrow-up-wide-short"></i>
+          <span x-text="sortLabel" class="hidden sm:inline"></span>
+        </button>
+        <div x-show="open" @click.outside="open=false" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" class="absolute right-0 top-full mt-2 apple-dropdown z-40">
+          <template x-for="s in sorts" :key="s.id">
+            <button @click="setSort(s.id); open=false" :class="sort===s.id ? 'bg-blue-50 text-blue-600 font-medium' : ''">
+              <span x-text="s.label"></span>
+              <template x-if="sort===s.id"><i class="fa-solid ml-auto" :class="order==='desc'?'fa-arrow-down-short-wide':'fa-arrow-up-short-wide'"></i></template>
+            </button>
+          </template>
+          <div class="border-t border-black/5 mt-1 pt-1">
+            <button @click="order=order==='desc'?'asc':'desc'; applyParams(); open=false" class="text-gray-500">
+              <i class="fa-solid w-4" :class="order==='desc'?'fa-arrow-down-z-a':'fa-arrow-up-a-z'"></i>
+              <span x-text="order==='desc'?'降序':'升序'"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter -->
+      <button @click="filterOpen = !filterOpen" class="toolbar-btn" :class="hasActiveFilter ? 'toolbar-btn-active' : ''">
+        <i class="fa-solid fa-sliders"></i>
+        <span class="hidden sm:inline">筛选</span>
+      </button>
+
+      <!-- Select -->
+      <button @click="selectionMode = !selectionMode" class="toolbar-btn" :class="selectionMode ? 'toolbar-btn-active' : ''">
+        <i class="fa-regular fa-square-check"></i>
+        <span class="hidden sm:inline" x-text="selectionMode?'取消选择':'选择'"></span>
+      </button>
+
+      <!-- Selection count -->
+      <template x-if="selectionMode && selected.length > 0">
+        <span class="text-xs font-semibold text-blue-600 bg-blue-50/80 backdrop-blur px-3 py-1.5 rounded-full whitespace-nowrap border border-blue-200/50">
+          已选 <span x-text="selected.length"></span> 项
+        </span>
+      </template>
+    </div>
+  </div>
+
+  <!-- ═══ Selection Mode Bar ═══ -->
+  <template x-if="selectionMode">
+    <div class="sticky top-[68px] z-20 glass border-b border-blue-200/30 px-5 py-3 flex items-center gap-4 flex-wrap text-sm">
+      <label class="flex items-center gap-2 cursor-pointer text-blue-700 select-none">
+        <input type="checkbox" @change="toggleAll" :checked="selected.length === imageIds.length && imageIds.length > 0" class="w-4 h-4 rounded border-blue-400 text-blue-500 focus:ring-blue-400">
+        <span class="font-medium">全选</span>
+      </label>
+      <span class="text-blue-300/60">|</span>
+      <input type="text" x-model="batchCategory" placeholder="归档分类…" class="h-9 px-3 text-sm border border-blue-200/60 rounded-xl bg-white/70 focus:bg-white focus:border-blue-400 outline-none w-32 transition-all backdrop-blur">
+      <button @click="submitBatch('/pending/batch-confirm')" class="h-9 px-5 rounded-xl glass-green font-medium text-sm" :disabled="selected.length===0" :style="selected.length===0?'opacity:0.4;pointer-events:none':''">
+        <i class="fa-solid fa-check mr-1.5"></i>确认归档
+      </button>
+      <button @click="submitBatch('/pending/batch-reject')" class="h-9 px-5 rounded-xl glass-red font-medium text-sm" :disabled="selected.length===0" :style="selected.length===0?'opacity:0.4;pointer-events:none':''">
+        <i class="fa-solid fa-xmark mr-1.5"></i>驳回
+      </button>
+    </div>
+  </template>
+
+  <!-- ═══ Filter Bar ═══ -->
+  <template x-if="filterOpen">
+    <div class="glass-sm border-b border-white/20 px-5 py-4">
+      <form method="get" action="/pending" class="flex items-center gap-4 flex-wrap text-sm">
+        <input type="hidden" name="view" :value="view">
+        <input type="hidden" name="group" value="{{ group_by }}">
+        <input type="hidden" name="sort" :value="sort">
+        <input type="hidden" name="order" :value="order">
+        <div class="flex items-center gap-2.5">
+          <label class="text-gray-500 text-xs font-medium">作品</label>
+          <select name="work" class="h-9 px-3 text-sm border border-gray-200/60 rounded-xl bg-white/70 focus:bg-white focus:border-blue-400 outline-none transition-all backdrop-blur-sm">
+            <option value="">全部</option>
+            {% for w in work_values %}<option value="{{ w }}" {{ 'selected' if request.query_params.get('work','') == w else '' }}>{{ w }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="flex items-center gap-2.5">
+          <label class="text-gray-500 text-xs font-medium">类型</label>
+          <select name="type" class="h-9 px-3 text-sm border border-gray-200/60 rounded-xl bg-white/70 focus:bg-white focus:border-blue-400 outline-none transition-all backdrop-blur-sm">
+            <option value="">全部</option>
+            {% for t in type_values %}<option value="{{ t }}" {{ 'selected' if request.query_params.get('type','') == t else '' }}>{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="flex items-center gap-2.5">
+          <label class="text-gray-500 text-xs font-medium">分类</label>
+          <input type="text" name="category" value="{{ request.query_params.get('category','') }}" placeholder="关键词" class="h-9 px-3 text-sm border border-gray-200/60 rounded-xl bg-white/70 focus:bg-white focus:border-blue-400 outline-none w-28 transition-all backdrop-blur-sm">
+        </div>
+        <button type="submit" class="h-9 px-5 rounded-xl glass-blue font-medium text-sm"><i class="fa-solid fa-check mr-1.5"></i>应用</button>
+        <a href="/pending" class="h-9 px-5 rounded-xl glass-gray font-medium text-sm flex items-center"><i class="fa-solid fa-rotate-left mr-1.5"></i>清除</a>
+      </form>
+    </div>
+  </template>
+
+  <!-- ═══ Group Mode Tabs ═══ -->
+  <div class="flex items-center gap-2 px-5 py-3 border-b border-white/30 bg-white/30 backdrop-blur-sm">
+    <a href="/pending?group=none&view={{ view }}&sort={{ sort }}&order={{ order }}"
+      class="text-xs px-4 py-1.5 rounded-full font-medium transition-all duration-300 {{ 'bg-black/80 text-white shadow-sm' if group_by == 'none' else 'bg-white/60 text-gray-600 hover:bg-white/90 hover:shadow-sm border border-white/30' }}">
+      全部
+    </a>
+    <a href="/pending?group=sim&view={{ view }}&sort={{ sort }}&order={{ order }}"
+      class="text-xs px-4 py-1.5 rounded-full font-medium transition-all duration-300 {{ 'bg-black/80 text-white shadow-sm' if group_by == 'sim' else 'bg-white/60 text-gray-600 hover:bg-white/90 hover:shadow-sm border border-white/30' }}">
+      按近似分组
+    </a>
+    {% if images %}
+    <span class="text-[11px] text-gray-400 ml-auto font-medium">{{ images|length }} 项</span>
+    {% endif %}
+  </div>
+
+  <!-- ═══ Content Area ═══ -->
+  <div class="p-5">
+    {% if not images %}
+    <div class="flex flex-col items-center justify-center py-24 text-gray-400 animate__animated animate__fadeIn">
+      <i class="fa-regular fa-image text-6xl mb-5 opacity-40"></i>
+      <p class="text-base font-medium text-gray-500">暂无待确认图片</p>
+      <p class="text-sm mt-1.5 text-gray-400">同步图片到 <code class="bg-white/60 px-2 py-0.5 rounded text-xs border border-white/30">sync_dir/</code> 后会触发 AI 识别</p>
+    </div>
+
+    {% elif groups is defined and groups %}
+      {% for gid, group_images in groups.items() %}
+      <div class="mb-8">
+        <div class="flex items-center justify-between mb-4 px-1">
+          <div class="flex items-center gap-3">
+            <span class="w-8 h-8 rounded-full bg-white/70 backdrop-blur flex items-center justify-center text-sm text-gray-500 shadow-sm border border-white/30">
+              <i class="fa-solid {{ 'fa-image' if gid == 0 else 'fa-layer-group' }}"></i>
+            </span>
+            <span class="text-sm font-semibold text-gray-800">{{ '独立图片' if gid == 0 else '相近组 #' + gid|string }}</span>
+            <span class="text-[11px] text-gray-400 bg-white/60 px-2 py-0.5 rounded-full border border-white/30 font-medium">{{ group_images|length }} 项</span>
+          </div>
+          {% if gid != 0 %}
+          <form action="/pending/batch-confirm" method="post" class="flex items-center gap-2">
+            {% for img in group_images %}<input type="hidden" name="image_ids" value="{{ img.id }}">{% endfor %}
+            <input type="hidden" name="redirect" value="/pending?group=sim&view={{ view }}">
+            <input type="text" name="category" placeholder="归档分类" class="h-8 px-3 text-xs border border-gray-200/60 rounded-xl bg-white/70 focus:bg-white focus:border-blue-400 outline-none w-24 transition-all backdrop-blur-sm">
+            <button class="h-8 px-4 rounded-xl glass-blue font-medium text-xs whitespace-nowrap">
+              <i class="fa-solid fa-archive mr-1"></i>批量归档
+            </button>
+          </form>
+          {% endif %}
+        </div>
+        {% include '_group_items.html' %}
+      </div>
+      {% endfor %}
+
+    {% else %}
+      {% include '_group_items.html' %}
+    {% endif %}
+  </div>
+</div>
+
+<script>
+function pendingApp() {
+  return {
+    view: '{{ view }}',
+    groupBy: '{{ group_by }}',
+    sort: '{{ sort }}',
+    order: '{{ order }}',
+    searchText: '{{ request.query_params.get("q","") }}',
+    filterOpen: false,
+    selectionMode: false,
+    selected: [],
+    batchCategory: '',
+    imageIds: {{ images | map(attribute='id') | list | tojson }},
+    q: '{{ request.query_params.get("q","") }}',
+
+    views: [
+      { id: 'xl-icons', label: '超大图标', icon: 'fa-images' },
+      { id: 'lg-icons', label: '大图标', icon: 'fa-image' },
+      { id: 'md-icons', label: '中图标', icon: 'fa-th-large' },
+      { id: 'sm-icons', label: '小图标', icon: 'fa-th' },
+      { id: 'list', label: '列表', icon: 'fa-list' },
+      { id: 'details', label: '详细信息', icon: 'fa-table-list' },
+      { id: 'tiles', label: '平铺', icon: 'fa-table-cells-large' },
+      { id: 'content', label: '内容', icon: 'fa-rectangle-list' },
+      { id: 'masonry', label: '瀑布流', icon: 'fa-waterfall' },
+    ],
+    sorts: [
+      { id: 'created_at', label: '添加时间' },
+      { id: 'filename', label: '名称' },
+      { id: 'file_size', label: '大小' },
+      { id: 'image_type', label: '类型' },
+      { id: 'work_name', label: '作品' },
+      { id: 'suggested_category', label: '分类' },
+      { id: 'width', label: '宽度' },
+      { id: 'height', label: '高度' },
+    ],
+
+    get viewLabel() { return this.views.find(v => v.id === this.view)?.label || '视图'; },
+    get viewIcon() { return this.views.find(v => v.id === this.view)?.icon || 'fa-image'; },
+    get sortLabel() { return this.sorts.find(s => s.id === this.sort)?.label || '排序'; },
+    get hasActiveFilter() { return this.q || {{ 'true' if request.query_params.get('work','') or request.query_params.get('type','') or request.query_params.get('category','') else 'false' }}; },
+
+    init() {
+      const saved = sessionStorage.getItem('pendingSelectionMode');
+      if (saved === 'true') this.selectionMode = true;
+    },
+
+    switchView(v) { this.view = v; const url = new URL(window.location); url.searchParams.set('view', v); window.location.href = url; },
+    setSort(s) { this.sort = s; this.applyParams(); },
+    toggleOrder() { this.order = this.order === 'desc' ? 'asc' : 'desc'; this.applyParams(); },
+
+    applyParams() {
+      const url = new URL(window.location);
+      url.searchParams.set('sort', this.sort); url.searchParams.set('order', this.order);
+      if (this.q) url.searchParams.set('q', this.q); else url.searchParams.delete('q');
+      window.location.href = url;
+    },
+
+    doSearch() { this.q = this.searchText; this.applyParams(); },
+
+    toggleAll(e) { if (e.target.checked) this.selected = [...this.imageIds]; else this.selected = []; },
+
+    toggleSelect(imgId) {
+      const idx = this.selected.indexOf(imgId);
+      if (idx >= 0) this.selected.splice(idx, 1); else this.selected.push(imgId);
+    },
+
+    submitBatch(action) {
+      if (this.selected.length === 0) return;
+      const formData = new FormData();
+      this.selected.forEach(id => formData.append('image_ids', id));
+      formData.append('redirect', '/pending?group=' + this.groupBy + '&view=' + this.view);
+      if (this.batchCategory) formData.append('category', this.batchCategory);
+      fetch(action, { method: 'POST', body: formData }).then(r => { if (r.redirected) window.location.href = r.url; });
+    },
+  }
+}
+</script>
 {% endblock %}

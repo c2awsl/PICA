@@ -2,56 +2,291 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PICA - {% block title %}图片管理{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>PICA — {% block title %}图片管理{% endblock %}</title>
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
     <script src="https://unpkg.com/alpinejs@3.14.0" defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
+        /* ═══════════════════════════════════════════
+           Apple Design System — PICA
+           ═══════════════════════════════════════════ */
+
+        /* ── Reset & Base ── */
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f5f5; color: #333; min-height: 100vh; }
-        nav { background: #fff; border-bottom: 1px solid #e0e0e0; padding: 0 24px; display: flex; align-items: center; height: 56px; gap: 24px; position: sticky; top: 0; z-index: 100; }
-        nav .logo { font-weight: 700; font-size: 18px; color: #1a73e8; }
-        nav a { text-decoration: none; color: #555; font-size: 14px; padding: 4px 12px; border-radius: 6px; transition: background .15s; }
-        nav a:hover { background: #e8f0fe; color: #1a73e8; }
-        nav a.active { background: #e8f0fe; color: #1a73e8; font-weight: 600; }
-        .container { max-width: 1280px; margin: 0 auto; padding: 24px; }
-        .card { background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.08); padding: 20px; margin-bottom: 20px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
-        .img-card { background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.08); overflow: hidden; transition: box-shadow .2s; }
-        .img-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.12); }
-        .img-card img { width: 100%; height: 200px; object-fit: cover; display: block; }
-        .img-card .info { padding: 12px; }
-        .img-card .info .cat { font-size: 12px; color: #1a73e8; background: #e8f0fe; display: inline-block; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; }
-        .img-card .info .tags { font-size: 12px; color: #666; line-height: 1.5; }
-        .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; }
-        .badge-pending { background: #fff3e0; color: #e65100; }
-        .badge-confirmed { background: #e8f5e9; color: #2e7d32; }
-        .btn { display: inline-block; padding: 8px 20px; border-radius: 8px; border: none; font-size: 14px; cursor: pointer; text-decoration: none; transition: opacity .15s; }
-        .btn:hover { opacity: .85; }
-        .btn-primary { background: #1a73e8; color: #fff; }
-        .btn-success { background: #2e7d32; color: #fff; }
-        .btn-danger { background: #d32f2f; color: #fff; }
-        .btn-ghost { background: transparent; color: #555; border: 1px solid #ddd; }
-        form { display: inline; }
-        select, input[type=text] { padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
-        .page-nav { display: flex; justify-content: center; gap: 8px; margin-top: 20px; }
-        .page-nav a { padding: 6px 14px; border: 1px solid #ddd; border-radius: 6px; text-decoration: none; color: #333; }
-        .page-nav a:hover { background: #e8f0fe; }
-        .empty { text-align: center; padding: 60px 20px; color: #999; }
-        .filter-bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+        html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+            background: #f5f5f7; color: #1d1d1f; min-height: 100vh; font-size: 14px; line-height: 1.47059;
+            letter-spacing: -0.01em;
+        }
+
+        /* ── macOS Unified Titlebar ── */
+        .mac-titlebar {
+            position: sticky; top: 0; z-index: 100;
+            display: flex; align-items: center; height: 48px; padding: 0 16px;
+            background: rgba(255,255,255,0.72); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+            user-select: none; -webkit-user-select: none;
+        }
+        .mac-titlebar .traffic-lights { display: flex; align-items: center; gap: 7px; margin-right: 16px; flex-shrink: 0; }
+        .mac-titlebar .traffic-lights a,
+        .mac-titlebar .traffic-lights button {
+            width: 12px; height: 12px; border-radius: 50%; border: none; cursor: pointer;
+            transition: all 0.15s; position: relative; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .mac-titlebar .traffic-lights .dot-close { background: #fe5f57; }
+        .mac-titlebar .traffic-lights .dot-minimize { background: #febc2e; }
+        .mac-titlebar .traffic-lights .dot-zoom { background: #28c840; }
+        .mac-titlebar .traffic-lights .dot-close:hover { background: #e04e48; }
+        .mac-titlebar .traffic-lights .dot-minimize:hover { background: #e0a826; }
+        .mac-titlebar .traffic-lights .dot-zoom:hover { background: #22b035; }
+        .mac-titlebar .traffic-lights a i,
+        .mac-titlebar .traffic-lights button i {
+            font-size: 6px; opacity: 0; transition: opacity 0.12s; color: rgba(0,0,0,0.5);
+        }
+        .mac-titlebar .traffic-lights a:hover i,
+        .mac-titlebar .traffic-lights button:hover i { opacity: 1; }
+
+        .mac-titlebar .brand {
+            font-size: 14px; font-weight: 700; letter-spacing: -0.02em; color: #1d1d1f;
+            margin-right: 24px; flex-shrink: 0;
+        }
+        .mac-titlebar .brand span { color: #007aff; }
+
+        /* ── Nav Links (Segmented Control Style) ── */
+        .nav-tabs {
+            display: flex; align-items: center; gap: 2px;
+            background: rgba(0,0,0,0.04); border-radius: 8px; padding: 2px;
+        }
+        .nav-tabs a {
+            text-decoration: none; font-size: 12px; font-weight: 500; color: #515154;
+            padding: 4px 14px; border-radius: 6px; transition: all 0.2s;
+            white-space: nowrap; letter-spacing: -0.01em;
+        }
+        .nav-tabs a:hover { color: #1d1d1f; }
+        .nav-tabs a.active {
+            background: #fff; color: #1d1d1f; box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+        }
+
+        .titlebar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+        /* ── Icon Button (macOS SF Symbol style) ── */
+        .icon-btn {
+            width: 28px; height: 28px; border-radius: 6px; border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            color: #515154; background: transparent; transition: all 0.2s; font-size: 13px;
+            text-decoration: none;
+        }
+        .icon-btn:hover { background: rgba(0,0,0,0.06); color: #1d1d1f; }
+
+        /* ── Page Container (full-window) ── */
+        .page { width: 100%; min-height: calc(100vh - 48px); }
+
+        /* ── Apple Cards ── */
+        .apple-card {
+            background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+        }
+        .apple-card-header {
+            font-size: 13px; font-weight: 600; color: #86868b; text-transform: uppercase;
+            letter-spacing: 0.04em; margin-bottom: 16px; padding-bottom: 12px;
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+        }
+
+        /* ── Stats Grid ── */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 28px; }
+        .stat-card {
+            background: #fff; border-radius: 14px; padding: 20px; text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+        }
+        .stat-card .stat-value { font-size: 32px; font-weight: 700; letter-spacing: -0.03em; color: #1d1d1f; line-height: 1; }
+        .stat-card .stat-label { font-size: 12px; color: #86868b; margin-top: 6px; font-weight: 500; }
+
+        /* ── Apple Buttons ── */
+        .apple-btn {
+            display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 16px;
+            border-radius: 8px; border: none; font-size: 12px; font-weight: 500; cursor: pointer;
+            transition: all 0.2s; text-decoration: none; white-space: nowrap;
+            background: #007aff; color: #fff;
+        }
+        .apple-btn:hover { background: #0056cc; }
+        .apple-btn:active { transform: scale(0.97); }
+        .apple-btn-secondary {
+            background: rgba(0,0,0,0.05); color: #1d1d1f;
+        }
+        .apple-btn-secondary:hover { background: rgba(0,0,0,0.1); }
+        .apple-btn-destructive {
+            background: #ff3b30; color: #fff;
+        }
+        .apple-btn-destructive:hover { background: #d62d20; }
+        .apple-btn-warning {
+            background: #ff9500; color: #fff;
+        }
+        .apple-btn-warning:hover { background: #e08600; }
+        .apple-btn-ghost {
+            background: transparent; color: #007aff; padding: 0 8px; height: auto;
+        }
+        .apple-btn-ghost:hover { text-decoration: underline; }
+
+        /* ── Apple Inputs ── */
+        .apple-input {
+            height: 36px; padding: 0 12px; font-size: 13px; border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 8px; outline: none; transition: all 0.2s; background: #fff;
+            font-family: inherit; color: #1d1d1f;
+        }
+        .apple-input:focus { border-color: #007aff; box-shadow: 0 0 0 3px rgba(0,122,255,0.15); }
+        .apple-input::placeholder { color: #aeaeb2; }
+
+        .apple-select {
+            height: 36px; padding: 0 30px 0 12px; font-size: 13px; border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 8px; outline: none; transition: all 0.2s; background: #fff;
+            font-family: inherit; color: #1d1d1f;
+            -webkit-appearance: none; appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2386868b'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 12px center; cursor: pointer;
+        }
+        .apple-select:focus { border-color: #007aff; box-shadow: 0 0 0 3px rgba(0,122,255,0.15); }
+        .apple-select option { color: #1d1d1f; }
+
+        .apple-textarea {
+            padding: 10px 12px; font-size: 13px; border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 8px; outline: none; transition: all 0.2s; background: #fff;
+            font-family: inherit; color: #1d1d1f; resize: vertical;
+        }
+        .apple-textarea:focus { border-color: #007aff; box-shadow: 0 0 0 3px rgba(0,122,255,0.15); }
+
+        /* ── Apple Badge ── */
+        .apple-badge {
+            display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 500;
+            letter-spacing: -0.01em;
+        }
+        .apple-badge-blue { background: rgba(0,122,255,0.1); color: #007aff; }
+        .apple-badge-green { background: rgba(52,199,89,0.1); color: #1a6a32; }
+        .apple-badge-orange { background: rgba(255,149,0,0.1); color: #b86800; }
+        .apple-badge-red { background: rgba(255,59,48,0.1); color: #b82e24; }
+        .apple-badge-gray { background: rgba(0,0,0,0.04); color: #86868b; }
+        .apple-badge-purple { background: rgba(175,82,222,0.1); color: #7b2f9e; }
+
+        /* ── Apple Pagination ── */
+        .apple-pagination { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 24px; }
+        .apple-pagination a, .apple-pagination span {
+            display: flex; align-items: center; justify-content: center; min-width: 32px; height: 32px;
+            padding: 0 8px; border-radius: 8px; font-size: 12px; font-weight: 500; text-decoration: none;
+            color: #515154; transition: all 0.2s;
+        }
+        .apple-pagination a:hover { background: rgba(0,0,0,0.05); }
+        .apple-pagination .current { background: rgba(0,122,255,0.1); color: #007aff; }
+        .apple-pagination .disabled { opacity: 0.3; pointer-events: none; }
+
+        /* ── Alert Banners ── */
+        .apple-alert {
+            padding: 12px 16px; border-radius: 10px; font-size: 13px; margin-bottom: 16px;
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        }
+        .apple-alert-success { background: rgba(52,199,89,0.08); color: #1a6a32; }
+        .apple-alert-warning { background: rgba(255,149,0,0.08); color: #b86800; }
+        .apple-alert-error { background: rgba(255,59,48,0.08); color: #b82e24; }
+        .apple-alert-info { background: rgba(0,122,255,0.08); color: #003d7a; }
+        .apple-alert-close {
+            background: none; border: none; cursor: pointer; color: inherit; opacity: 0.5;
+            font-size: 18px; line-height: 1; padding: 0 4px; transition: opacity 0.2s;
+        }
+        .apple-alert-close:hover { opacity: 1; }
+
+        /* ── Typography ── */
+        .page-title { font-size: 22px; font-weight: 700; letter-spacing: -0.03em; color: #1d1d1f; margin-bottom: 20px; }
+        .page-title .subtitle { font-size: 14px; font-weight: 400; color: #86868b; margin-left: 8px; letter-spacing: 0; }
+        .section-title { font-size: 13px; font-weight: 600; color: #86868b; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 12px; }
+
+        /* ── Empty State ── */
+        .empty-state { text-align: center; padding: 60px 20px; }
+        .empty-state i { font-size: 48px; color: #c7c7cc; margin-bottom: 16px; }
+        .empty-state p { font-size: 15px; font-weight: 500; color: #86868b; }
+        .empty-state .hint { font-size: 13px; color: #aeaeb2; margin-top: 6px; }
+
+        /* ── Divide ── */
+        .apple-divider { border: none; border-top: 1px solid rgba(0,0,0,0.06); margin: 20px 0; }
+
+        /* ── Label group ── */
+        .field-group { margin-bottom: 16px; }
+        .field-group label { font-size: 12px; font-weight: 600; display: block; margin-bottom: 5px; color: #515154; letter-spacing: -0.01em; }
+        .field-group .hint { font-size: 11px; color: #aeaeb2; margin-top: 4px; }
+
+        /* ── Link ── */
+        .apple-link { color: #007aff; text-decoration: none; font-weight: 500; }
+        .apple-link:hover { text-decoration: underline; }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.2); }
+
+        /* ── Code inline ── */
+        code {
+            font-family: "SF Mono", "SFMono-Regular", "Menlo", monospace;
+            font-size: 12px; background: rgba(0,0,0,0.04); padding: 2px 6px; border-radius: 4px; color: #515154;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            .mac-titlebar { padding: 0 12px; }
+            .mac-titlebar .brand { font-size: 13px; margin-right: 12px; }
+            .nav-tabs a { padding: 4px 10px; font-size: 11px; }
+            .page-title { font-size: 18px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 480px) {
+            .nav-tabs { gap: 1px; }
+            .nav-tabs a { padding: 4px 8px; font-size: 10px; }
+        }
+
+        /* ── Page padding helpers ── */
+        .page-pad { padding: 24px 32px 48px; }
+        @media (max-width: 768px) { .page-pad { padding: 16px; } }
     </style>
+    {% block extra_head %}{% endblock %}
 </head>
 <body>
-    <nav>
-        <span class="logo">PICA</span>
-        <a href="/pending" class="{{ 'active' if request.url.path in ['/', '/pending'] else '' }}">待确认</a>
-        <a href="/archive" class="{{ 'active' if request.url.path.startswith('/archive') else '' }}">归档浏览</a>
-        <a href="/scan" class="{{ 'active' if request.url.path == '/scan' else '' }}">扫描</a>
-        <a href="/stats" class="{{ 'active' if request.url.path == '/stats' else '' }}">统计</a>
-        <a href="/settings" class="{{ 'active' if request.url.path == '/settings' else '' }}" style="margin-left:auto;">设置</a>
-    </nav>
-    <div class="container">
+    <!-- macOS Unified Titlebar -->
+    <header class="mac-titlebar">
+        <div class="traffic-lights">
+            <button class="dot-close" onclick="window.history.back()" title="返回">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <button class="dot-minimize" onclick="window.location.reload()" title="刷新">
+                <i class="fa-solid fa-minus"></i>
+            </button>
+            <a class="dot-zoom" href="/" title="主页">
+                <i class="fa-solid fa-plus"></i>
+            </a>
+        </div>
+        <div class="brand">PICA<span>.</span></div>
+        <nav class="nav-tabs">
+            <a href="/pending" class="{{ 'active' if request.url.path in ['/', '/pending'] else '' }}">
+                <i class="fa-regular fa-image mr-1.5"></i>待确认
+            </a>
+            <a href="/archive" class="{{ 'active' if request.url.path.startswith('/archive') else '' }}">
+                <i class="fa-regular fa-folder mr-1.5"></i>归档
+            </a>
+            <a href="/scan" class="{{ 'active' if request.url.path == '/scan' else '' }}">
+                <i class="fa-regular fa-radar mr-1.5"></i>扫描
+            </a>
+            <a href="/stats" class="{{ 'active' if request.url.path == '/stats' else '' }}">
+                <i class="fa-regular fa-chart-bar mr-1.5"></i>统计
+            </a>
+        </nav>
+        <div class="titlebar-right">
+            <a href="/settings" class="icon-btn {{ 'active' if request.url.path == '/settings' else '' }}" title="设置">
+                <i class="fa-solid fa-gear"></i>
+            </a>
+        </div>
+    </header>
+
+    <main class="page">
         {% block content %}{% endblock %}
-    </div>
+    </main>
 </body>
 </html>

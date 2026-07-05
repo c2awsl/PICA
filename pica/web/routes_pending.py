@@ -1,13 +1,12 @@
 import json
 from datetime import datetime
-from pathlib import Path
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
-from pica.database import Image, ImageStatus, get_session
+from pica.database import Image, ImageStatus
 from pica.archiver import archive_image, cleanup_pending
 
 router = APIRouter()
@@ -22,24 +21,64 @@ def get_db(request: Request) -> Session:
         session.close()
 
 
+SORT_MAP = {
+    "filename": Image.filename,
+    "file_size": Image.file_size,
+    "created_at": Image.created_at,
+    "confirmed_at": Image.confirmed_at,
+    "image_type": Image.image_type,
+    "work_name": Image.work_name,
+    "suggested_category": Image.suggested_category,
+    "width": Image.width,
+    "height": Image.height,
+}
+
+
 @router.get("/", response_class=HTMLResponse)
 @router.get("/pending", response_class=HTMLResponse)
 async def pending_list(request: Request, db: Session = Depends(get_db)):
     cfg = request.app.state.cfg
-    group_by = request.query_params.get("group", "none")
+    params = request.query_params
+
+    view = params.get("view", "lg-icons")
+    group_by = params.get("group", "none")
+    work = params.get("work", "")
+    img_type = params.get("type", "")
+    category = params.get("category", "")
+    q = params.get("q", "")
+    sort = params.get("sort", "created_at")
+    order = params.get("order", "desc")
+
+    filters = [Image.status == ImageStatus.PENDING]
+    if work:
+        filters.append(Image.work_name == work)
+    if img_type:
+        filters.append(Image.image_type == img_type)
+    if category:
+        filters.append(Image.suggested_category.like(f"%{category}%"))
+    if q:
+        filters.append(Image.filename.ilike(f"%{q}%"))
+
+    sort_col = SORT_MAP.get(sort, Image.created_at)
+    order_by = sort_col.desc() if order == "desc" else sort_col.asc()
+
+    ctx = {
+        "request": request,
+        "categories": cfg.categories,
+        "group_by": group_by,
+        "view": view,
+        "type_values": _get_type_values(db),
+        "work_values": _get_work_values(db),
+        "sort": sort,
+        "order": order,
+    }
 
     if group_by == "sim":
-        sub = (
-            select(Image.similar_group_id, func.count(Image.id).label("cnt"))
-            .where(Image.status == ImageStatus.PENDING)
-            .group_by(Image.similar_group_id)
-            .subquery()
-        )
         stmt = (
             select(Image)
-            .where(Image.status == ImageStatus.PENDING)
-            .order_by(Image.similar_group_id, Image.created_at.desc())
-            .limit(200)
+            .where(*filters)
+            .order_by(Image.similar_group_id, order_by)
+            .limit(400)
         )
         images = db.execute(stmt).scalars().all()
 
@@ -51,28 +90,49 @@ async def pending_list(request: Request, db: Session = Depends(get_db)):
                 groups[gid] = []
             groups[gid].append(img)
 
-        return request.app.state.templates.TemplateResponse(
-            "pending.html",
-            {
-                "request": request,
-                "images": images,
-                "groups": groups,
-                "categories": cfg.categories,
-                "group_by": "sim",
-            },
-        )
+        ctx["images"] = images
+        ctx["groups"] = groups
+        return request.app.state.templates.TemplateResponse("pending.html", ctx)
 
     stmt = (
         select(Image)
-        .where(Image.status == ImageStatus.PENDING)
-        .order_by(Image.created_at.desc())
-        .limit(100)
+        .where(*filters)
+        .order_by(order_by)
+        .limit(400)
     )
     images = db.execute(stmt).scalars().all()
-    return request.app.state.templates.TemplateResponse(
-        "pending.html",
-        {"request": request, "images": images, "categories": cfg.categories, "group_by": "none"},
-    )
+    ctx["images"] = images
+    return request.app.state.templates.TemplateResponse("pending.html", ctx)
+
+
+def _get_type_values(db: Session) -> list:
+    rows = db.execute(
+        select(Image.image_type)
+        .where(Image.image_type.isnot(None), Image.image_type != "")
+        .distinct()
+        .order_by(Image.image_type)
+    ).scalars().all()
+    return rows
+
+
+def _get_work_values(db: Session) -> list:
+    rows = db.execute(
+        select(Image.work_name)
+        .where(Image.work_name.isnot(None), Image.work_name != "")
+        .distinct()
+        .order_by(Image.work_name)
+    ).scalars().all()
+    return rows
+
+
+def _get_type_values(db: Session) -> list:
+    rows = db.execute(
+        select(Image.image_type)
+        .where(Image.image_type.isnot(None), Image.image_type != "")
+        .distinct()
+        .order_by(Image.image_type)
+    ).scalars().all()
+    return rows
 
 
 @router.get("/pending/{image_id}", response_class=HTMLResponse)
@@ -160,6 +220,20 @@ async def batch_confirm(request: Request, db: Session = Depends(get_db)):
         count += 1
     db.commit()
 
+    return RedirectResponse(url=form.get("redirect", "/pending"), status_code=303)
+
+
+@router.post("/pending/batch-reject")
+async def batch_reject(request: Request, db: Session = Depends(get_db)):
+    form = await request.form()
+    image_ids = form.getlist("image_ids")
+    for img_id in image_ids:
+        img = db.get(Image, int(img_id))
+        if not img or img.status != ImageStatus.PENDING:
+            continue
+        img.status = ImageStatus.REJECTED
+        cleanup_pending(img.pending_path)
+    db.commit()
     return RedirectResponse(url=form.get("redirect", "/pending"), status_code=303)
 
 

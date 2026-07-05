@@ -1,0 +1,11 @@
+<div class="ani-in flex items-center gap-3 rounded-xl px-2 py-1.5 hover:bg-white/40 transition-all duration-300 group cursor-default">
+  <input type="checkbox" x-show="selectionMode" :checked="selected.includes({{ img.id }})" @change="toggleSelect({{ img.id }})" class="w-3.5 h-3.5 rounded border-gray-300 text-blue-500 cursor-pointer flex-shrink-0">
+  <a href="/preview/{{ img.id }}" target="_blank" class="flex-shrink-0">
+    <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="" loading="lazy" class="w-9 h-9 object-cover rounded-lg bg-gray-100/50 shadow-sm">
+  </a>
+  <div class="flex-1 min-w-0 text-xs font-medium text-gray-700 truncate">{{ img.filename }}</div>
+  <div class="flex gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-300">
+    <form action="/pending/{{ img.id }}/confirm" method="post"><button class="glass-btn glass-green w-7 h-7 rounded-lg flex items-center justify-center text-[10px]">✓</button></form>
+    <form action="/pending/{{ img.id }}/reject" method="post"><button class="glass-btn glass-red w-7 h-7 rounded-lg flex items-center justify-center text-[10px]">✕</button></form>
+  </div>
+</div>

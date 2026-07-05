@@ -1,0 +1,12 @@
+<div class="ani-in break-inside-avoid mb-4 glass-card rounded-2xl overflow-hidden group relative">
+  <a href="/preview/{{ img.id }}" target="_blank" class="block">
+    <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="{{ img.filename }}" loading="lazy" class="w-full h-auto object-cover block bg-gray-100/50">
+  </a>
+  <div x-show="selectionMode" class="absolute top-2 left-2 z-10">
+    <input type="checkbox" :checked="selected.includes({{ img.id }})" @change="toggleSelect({{ img.id }})" class="w-3.5 h-3.5 rounded border-white/60 text-blue-500 cursor-pointer shadow">
+  </div>
+  <div class="absolute top-1.5 right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 z-10">
+    <form action="/pending/{{ img.id }}/confirm" method="post"><button class="glass-btn glass-green w-7 h-7 rounded-full flex items-center justify-center text-[10px] shadow">✓</button></form>
+    <form action="/pending/{{ img.id }}/reject" method="post"><button class="glass-btn glass-red w-7 h-7 rounded-full flex items-center justify-center text-[10px] shadow">✕</button></form>
+  </div>
+</div>

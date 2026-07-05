@@ -1,42 +1,44 @@
 {% extends "base.html" %}
 {% block title %}统计{% endblock %}
 {% block content %}
-<h2 style="margin-bottom:20px;">统计面板</h2>
+<div class="page-pad">
+<div class="page-title">统计面板</div>
 
-<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:16px;margin-bottom:32px;">
-    <div class="card" style="text-align:center;">
-        <div style="font-size:32px;font-weight:700;color:#1a73e8;">{{ total }}</div>
-        <div style="font-size:14px;color:#999;margin-top:4px;">全部图片</div>
-    </div>
-    <div class="card" style="text-align:center;">
-        <div style="font-size:32px;font-weight:700;color:#e65100;">{{ pending_count }}</div>
-        <div style="font-size:14px;color:#999;margin-top:4px;">待确认</div>
-    </div>
-    <div class="card" style="text-align:center;">
-        <div style="font-size:32px;font-weight:700;color:#2e7d32;">{{ confirmed_count }}</div>
-        <div style="font-size:14px;color:#999;margin-top:4px;">已归档</div>
-    </div>
-    <div class="card" style="text-align:center;">
-        <div style="font-size:32px;font-weight:700;color:#999;">{{ rejected_count }}</div>
-        <div style="font-size:14px;color:#999;margin-top:4px;">已驳回</div>
-    </div>
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-value" style="color:#007aff;">{{ total }}</div>
+    <div class="stat-label">全部图片</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" style="color:#ff9500;">{{ pending_count }}</div>
+    <div class="stat-label">待确认</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" style="color:#34c759;">{{ confirmed_count }}</div>
+    <div class="stat-label">已归档</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" style="color:#86868b;">{{ rejected_count }}</div>
+    <div class="stat-label">已驳回</div>
+  </div>
 </div>
 
-<div class="card">
-    <h3 style="margin-bottom:16px;">分类分布</h3>
-    {% if category_counts %}
-    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:12px;">
-        {% for cat, count in category_counts.items() %}
-        <div style="background:#f8f9fa;border-radius:8px;padding:16px;text-align:center;">
-            <div style="font-size:24px;font-weight:700;color:#1a73e8;">{{ count }}</div>
-            <div style="font-size:14px;color:#666;margin-top:4px;">{{ cat }}</div>
-        </div>
-        {% endfor %}
+<div class="apple-card">
+  <div class="apple-card-header">分类分布</div>
+  {% if category_counts %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;">
+    {% for cat, count in category_counts.items() %}
+    <div style="background:#f5f5f7;border-radius:10px;padding:16px;text-align:center;">
+      <div style="font-size:22px;font-weight:700;color:#1d1d1f;">{{ count }}</div>
+      <div style="font-size:13px;color:#86868b;margin-top:4px;">{{ cat }}</div>
     </div>
-    {% else %}
-    <div class="empty" style="padding:30px;">
-        <p>暂无统计数据</p>
-    </div>
-    {% endif %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state" style="padding:24px;">
+    <p style="color:#aeaeb2;">暂无统计数据</p>
+  </div>
+  {% endif %}
+</div>
 </div>
 {% endblock %}

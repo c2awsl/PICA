@@ -1,0 +1,72 @@
+{# Layout wrapper for items based on view mode #}
+{% set tmpl = '_' + view + '.html' %}
+{% set items = group_images if groups is defined else images %}
+
+{% if view == 'xl-icons' %}
+<div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">
+{% for img in items %}{% include tmpl %}{% endfor %}
+</div>
+
+{% elif view == 'lg-icons' %}
+<div class="grid gap-2.5" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">
+{% for img in items %}{% include tmpl %}{% endfor %}
+</div>
+
+{% elif view == 'md-icons' %}
+<div class="grid gap-2" style="grid-template-columns:repeat(auto-fill,minmax(90px,1fr))">
+{% for img in items %}{% include tmpl %}{% endfor %}
+</div>
+
+{% elif view == 'sm-icons' %}
+<div class="flex flex-col gap-0.5">
+{% for img in items %}{% include tmpl %}{% endfor %}
+</div>
+
+{% elif view == 'list' %}
+<div class="v-list">
+{% for img in items %}{% include tmpl %}{% endfor %}
+</div>
+
+{% elif view == 'details' %}
+<div class="overflow-x-auto rounded-xl bg-white shadow-sm">
+<table class="w-full text-xs">
+  <thead>
+    <tr class="border-b border-gray-100 bg-gray-50/80 text-[11px] text-gray-500">
+      <th class="py-2 px-2 w-8 text-left font-medium"><input type="checkbox" x-show="selectionMode" @change="toggleAll" :checked="selected.length===imageIds.length&&imageIds.length>0" class="w-3.5 h-3.5 rounded border-gray-400 text-blue-500 cursor-pointer"></th>
+      <th class="py-2 px-1 w-9"></th>
+      <th class="py-2 px-2 text-left font-medium cursor-pointer hover:text-gray-700" @click="setSort('filename')">名称{% if sort == 'filename' %}<i class="fa-solid ml-0.5 text-[9px]" :class="order==='desc'?'fa-arrow-down-short-wide':'fa-arrow-up-short-wide'"></i>{% endif %}</th>
+      <th class="py-2 px-2 text-left font-medium cursor-pointer hover:text-gray-700" @click="setSort('work_name')">作品{% if sort == 'work_name' %}<i class="fa-solid ml-0.5 text-[9px]" :class="order==='desc'?'fa-arrow-down-short-wide':'fa-arrow-up-short-wide'"></i>{% endif %}</th>
+      <th class="py-2 px-2 text-left font-medium cursor-pointer hover:text-gray-700" @click="setSort('image_type')">类型{% if sort == 'image_type' %}<i class="fa-solid ml-0.5 text-[9px]" :class="order==='desc'?'fa-arrow-down-short-wide':'fa-arrow-up-short-wide'"></i>{% endif %}</th>
+      <th class="py-2 px-2 text-left font-medium cursor-pointer hover:text-gray-700" @click="setSort('suggested_category')">分类{% if sort == 'suggested_category' %}<i class="fa-solid ml-0.5 text-[9px]" :class="order==='desc'?'fa-arrow-down-short-wide':'fa-arrow-up-short-wide'"></i>{% endif %}</th>
+      <th class="py-2 px-2 text-left font-medium cursor-pointer hover:text-gray-700" @click="setSort('file_size')">大小{% if sort == 'file_size' %}<i class="fa-solid ml-0.5 text-[9px]" :class="order==='desc'?'fa-arrow-down-short-wide':'fa-arrow-up-short-wide'"></i>{% endif %}</th>
+      <th class="py-2 px-2 text-left font-medium cursor-pointer hover:text-gray-700" @click="setSort('width')">尺寸{% if sort == 'width' %}<i class="fa-solid ml-0.5 text-[9px]" :class="order==='desc'?'fa-arrow-down-short-wide':'fa-arrow-up-short-wide'"></i>{% endif %}</th>
+      <th class="py-2 px-2 text-left font-medium cursor-pointer hover:text-gray-700" @click="setSort('created_at')">日期{% if sort == 'created_at' %}<i class="fa-solid ml-0.5 text-[9px]" :class="order==='desc'?'fa-arrow-down-short-wide':'fa-arrow-up-short-wide'"></i>{% endif %}</th>
+      <th class="py-2 px-1 text-left font-medium">操作</th>
+    </tr>
+  </thead>
+  <tbody>
+{% for img in items %}{% include tmpl %}{% endfor %}
+  </tbody>
+</table>
+</div>
+
+{% elif view == 'tiles' %}
+<div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(340px,1fr))">
+{% for img in items %}{% include tmpl %}{% endfor %}
+</div>
+
+{% elif view == 'content' %}
+<div class="flex flex-col">
+{% for img in items %}{% include tmpl %}{% endfor %}
+</div>
+
+{% elif view == 'masonry' %}
+<div class="masonry">
+{% for img in items %}{% include tmpl %}{% endfor %}
+</div>
+
+{% else %}
+<div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">
+{% for img in items %}{% include '_xl-icons.html' %}{% endfor %}
+</div>
+{% endif %}
