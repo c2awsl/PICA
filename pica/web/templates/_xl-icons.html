@@ -1,64 +1,44 @@
-<div class="ani-in glass-card rounded-2xl overflow-hidden group relative" data-img-id="{{ img.id }}">
-  <div x-show="selectionMode" class="absolute top-3 left-3 z-10">
-    <input type="checkbox" :checked="selected.includes({{ img.id }})" @change="toggleSelect({{ img.id }})" class="w-4 h-4 rounded border-white/60 text-blue-500 focus:ring-blue-400 cursor-pointer shadow-lg">
+<div class="ani-in glass-card rounded-2xl overflow-hidden group relative cursor-pointer transition-all duration-150"
+     data-img-id="{{ img.id }}"
+     @click="toggleSelect({{ img.id }})"
+     :class="selected.includes({{ img.id }}) ? 'ring-2 ring-blue-500 ring-offset-1' : ''">
+  <div class="absolute top-3 left-3 z-10" @click.stop>
+    <input type="checkbox" :checked="selected.includes({{ img.id }})" @change="toggleSelect({{ img.id }})" class="w-4 h-4 rounded border-white/60 text-blue-500 cursor-pointer shadow-lg">
   </div>
-  <!-- Thumbnail → lightbox + draggable -->
-  <div class="relative cursor-pointer" draggable="true"
-       @click="openLightbox('/thumbnails/{{ img.md5_hash }}_1024.jpg', [], 0)"
+  <!-- Thumbnail -->
+  <div class="relative" draggable="true"
        @dragstart="onDragStart($event, {id:{{ img.id }},thumb:'/thumbnails/{{ img.md5_hash }}_256.jpg',lightbox:'/thumbnails/{{ img.md5_hash }}_1024.jpg'})">
     <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="{{ img.filename }}" loading="lazy" class="w-full aspect-square object-cover block bg-gray-100/50">
     <div class="img-hover-actions">
-      <button type="button" title="查看大图"><i class="fa-regular fa-expand"></i></button>
+      <button type="button" title="查看大图" @click.stop="openLightbox('/thumbnails/{{ img.md5_hash }}_1024.jpg', [], 0)"><i class="fa-regular fa-expand"></i></button>
     </div>
   </div>
-  <!-- Inline confirm form with category/tag chips -->
-  <form action="/pending/{{ img.id }}/confirm" method="post"
-        x-data="{cat:'{{ (img.suggested_category_list or [''])[0] }}',tags:{{ img.suggested_tags_list | tojson }}}">
-    <input type="hidden" name="category" :value="cat">
-    <input type="hidden" name="tags" :value="tags.join(',')">
-    <input type="hidden" name="work" value="{{ img.work_name or '' }}">
-    <input type="hidden" name="image_type" value="{{ img.image_type or '' }}">
-    <div class="px-2.5 pt-2 flex items-center justify-between gap-1">
-      <div class="flex items-center gap-1.5 min-w-0 flex-1">
-        <span class="text-[11px] text-gray-500 truncate font-medium">{{ img.original_filename or img.filename }}</span>
-        {% if img.ai_status == 'failed' %}
-        <span class="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-red-500" title="识别失败"></span>
-        {% elif img.ai_status == 'processing' %}
-        <span class="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" title="识别中"></span>
-        {% elif img.ai_status == 'pending' %}
-        <span class="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-gray-400" title="等待识别"></span>
-        {% endif %}
-      </div>
-      <div class="flex items-center gap-1 flex-shrink-0">
-        {% if img.ai_status == 'failed' %}
-        <form action="/pending/{{ img.id }}/retry-ai" method="post" style="display:inline">
-          <button type="submit" class="glass-btn glass-gray w-7 h-7 rounded-full flex items-center justify-center text-[10px]" title="重试AI"><i class="fa-solid fa-rotate"></i></button>
-        </form>
-        {% endif %}
+  <!-- Info + actions -->
+  <div class="px-2.5 pt-2 pb-2.5 flex items-center justify-between gap-1">
+    <div class="flex items-center gap-1.5 min-w-0 flex-1">
+      <span class="text-[11px] text-gray-500 truncate font-medium">{{ img.original_filename or img.filename }}</span>
+      {% if img.ai_status == 'failed' %}
+      <span class="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-red-500" title="识别失败"></span>
+      {% elif img.ai_status == 'processing' %}
+      <span class="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" title="识别中"></span>
+      {% elif img.ai_status == 'pending' %}
+      <span class="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-gray-400" title="等待识别"></span>
+      {% endif %}
+    </div>
+    <div class="flex items-center gap-1 flex-shrink-0" @click.stop>
+      {% if img.ai_status == 'failed' %}
+      <form action="/pending/{{ img.id }}/retry-ai" method="post" style="display:inline">
+        <button type="submit" class="glass-btn glass-gray w-7 h-7 rounded-full flex items-center justify-center text-[10px]" title="重试AI"><i class="fa-solid fa-rotate"></i></button>
+      </form>
+      {% endif %}
+      <form action="/pending/{{ img.id }}/confirm" method="post" style="display:inline">
+        <input type="hidden" name="category" value="{{ (img.suggested_category_list or [''])[0] }}">
+        <input type="hidden" name="tags" value="{{ (img.suggested_tags_list or []) | join(',') }}">
         <button type="submit" class="glass-btn glass-green w-7 h-7 rounded-full flex items-center justify-center text-[10px]" title="归档"><i class="fa-solid fa-check"></i></button>
-        <form action="/pending/{{ img.id }}/reject" method="post" style="display:inline">
-          <button type="submit" class="glass-btn glass-red w-7 h-7 rounded-full flex items-center justify-center text-[10px]" title="驳回"><i class="fa-solid fa-xmark"></i></button>
-        </form>
-      </div>
+      </form>
+      <form action="/pending/{{ img.id }}/reject" method="post" style="display:inline">
+        <button type="submit" class="glass-btn glass-red w-7 h-7 rounded-full flex items-center justify-center text-[10px]" title="驳回"><i class="fa-solid fa-xmark"></i></button>
+      </form>
     </div>
-    <!-- Category chips (click to select primary category) -->
-    {% if img.suggested_category_list %}
-    <div class="px-2.5 pb-1 flex flex-wrap gap-1 mt-1">
-      {% for c in img.suggested_category_list %}
-      <span @click="cat='{{ c }}'" :class="'chip chip-cat ' + (cat==='{{ c }}'?'selected':'')" style="font-size:10px;padding:1px 8px">{{ c }}</span>
-      {% endfor %}
-    </div>
-    {% endif %}
-    <!-- Tag chips (click to toggle) -->
-    {% if img.suggested_tags_list %}
-    <div class="px-2.5 pb-2 flex flex-wrap gap-1">
-      {% for t in img.suggested_tags_list %}
-      <span @click="tags=tags.includes('{{ t }}')?tags.filter(x=>x!=='{{ t }}'):[...tags,'{{ t }}']" :class="'chip chip-tag ' + (tags.includes('{{ t }}')?'selected':'')" style="font-size:10px;padding:1px 8px">{{ t }}</span>
-      {% endfor %}
-    </div>
-    {% endif %}
-    {% if not img.suggested_category_list and not img.suggested_tags_list %}
-    <div class="px-2.5 py-1.5"></div>
-    {% endif %}
-  </form>
+  </div>
 </div>

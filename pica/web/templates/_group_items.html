@@ -32,7 +32,7 @@
 <table class="w-full text-xs">
   <thead>
     <tr class="border-b border-gray-100 bg-gray-50/80 text-[11px] text-gray-500">
-      <th class="py-2 px-2 w-8 text-left font-medium"><input type="checkbox" x-show="selectionMode" @change="toggleAll" :checked="selected.length===imageIds.length&&imageIds.length>0" class="w-3.5 h-3.5 rounded border-gray-400 text-blue-500 cursor-pointer"></th>
+      <th class="py-2 px-2 w-8 text-left font-medium"><input type="checkbox" @change="toggleAll" :checked="selected.length===imageIds.length&&imageIds.length>0" class="w-3.5 h-3.5 rounded border-gray-400 text-blue-500 cursor-pointer"></th>
       <th class="py-2 px-1 w-9"></th>
       <th class="py-2 px-2 text-left font-medium cursor-pointer hover:text-gray-700" @click="setSort('filename')">名称{% if sort == 'filename' %}<i class="fa-solid ml-0.5 text-[9px]" :class="order==='desc'?'fa-arrow-down-short-wide':'fa-arrow-up-short-wide'"></i>{% endif %}</th>
       <th class="py-2 px-2 text-left font-medium cursor-pointer hover:text-gray-700" @click="setSort('work_name')">作品{% if sort == 'work_name' %}<i class="fa-solid ml-0.5 text-[9px]" :class="order==='desc'?'fa-arrow-down-short-wide':'fa-arrow-up-short-wide'"></i>{% endif %}</th>

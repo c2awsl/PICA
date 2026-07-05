@@ -476,6 +476,54 @@ async def batch_confirm(request: Request, db: Session = Depends(get_db)):
     return RedirectResponse(url=form.get("redirect", "/pending"), status_code=303)
 
 
+@router.post("/pending/batch-edit")
+async def batch_edit_pending(request: Request, db: Session = Depends(get_db)):
+    form = await request.form()
+    image_ids = form.getlist("image_ids")
+    category = form.get("category", "").strip()
+    tags_str = form.get("tags", "").strip()
+    work = form.get("work", "").strip()
+    img_type = form.get("image_type", "").strip()
+
+    count = 0
+    for img_id_str in image_ids:
+        img = db.get(Image, int(img_id_str))
+        if not img or img.status != ImageStatus.PENDING:
+            continue
+        if category:
+            cat_list = [c.strip() for c in category.split(",") if c.strip()]
+            img.suggested_category = json.dumps(cat_list, ensure_ascii=False)
+            db.query(ImageCategory).filter_by(image_id=img.id, source="suggested").delete()
+            for name in cat_list:
+                cat = db.query(Category).filter_by(name=name).first()
+                if not cat:
+                    cat = Category(name=name)
+                    db.add(cat)
+                    db.flush()
+                db.add(ImageCategory(image_id=img.id, category_id=cat.id, source="suggested"))
+        if tags_str:
+            tag_list = [t.strip() for t in tags_str.split(",") if t.strip()]
+            img.suggested_tags = json.dumps(tag_list, ensure_ascii=False)
+            db.query(ImageTag).filter_by(image_id=img.id, source="suggested").delete()
+            for name in tag_list:
+                tag = db.query(Tag).filter_by(name=name).first()
+                if not tag:
+                    tag = Tag(name=name)
+                    db.add(tag)
+                    db.flush()
+                db.add(ImageTag(image_id=img.id, tag_id=tag.id, source="suggested"))
+        if work:
+            img.work_name = work
+        if img_type:
+            img.image_type = img_type
+        img.user_edited = 1
+        img.processed_at = datetime.utcnow()
+        log_action(db, "batch_edit", img.id, f"批量编辑: category={category}, tags={tags_str}, work={work}, type={img_type}")
+        count += 1
+    db.commit()
+    return JSONResponse({"success": True, "count": count})
+
+
 @router.post("/pending/batch-reject")
 async def batch_reject(request: Request, db: Session = Depends(get_db)):
     form = await request.form()

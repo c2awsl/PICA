@@ -1,8 +1,10 @@
-<tr class="ani-in border-b border-white/30 hover:bg-white/40 transition-all duration-300 group" data-img-id="{{ img.id }}">
-  <td class="py-2.5 px-3 w-8">
-    <input type="checkbox" x-show="selectionMode" :checked="selected.includes({{ img.id }})" @change="toggleSelect({{ img.id }})" class="w-3.5 h-3.5 rounded border-gray-300 text-blue-500 cursor-pointer">
+<tr class="ani-in border-b border-white/30 hover:bg-white/40 transition-all duration-300 group cursor-pointer"
+    data-img-id="{{ img.id }}"
+    @click="toggleSelect({{ img.id }})">
+  <td class="py-2.5 px-3 w-8" @click.stop>
+    <input type="checkbox" :checked="selected.includes({{ img.id }})" @change="toggleSelect({{ img.id }})" class="w-3.5 h-3.5 rounded border-gray-300 text-blue-500 cursor-pointer">
   </td>
-  <td class="py-2 px-1.5 w-10 cursor-pointer" @click="openLightbox('/thumbnails/{{ img.md5_hash }}_1024.jpg', [], 0)">
+  <td class="py-2 px-1.5 w-10">
     <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="" loading="lazy" class="w-8 h-8 object-cover rounded-lg bg-gray-100/50 shadow-sm">
   </td>
   <td class="py-2.5 px-3"><div class="text-sm font-medium text-gray-700 truncate max-w-[200px]">{{ img.filename }}</div></td>
@@ -25,7 +27,7 @@
       {% endif %}
     </div>
   </td>
-  <td class="py-2.5 px-2 whitespace-nowrap">
+  <td class="py-2.5 px-2 whitespace-nowrap" @click.stop>
     <div class="flex gap-1.5">
       {% if img.ai_status == 'failed' %}
       <form action="/pending/{{ img.id }}/retry-ai" method="post" class="inline-flex items-center gap-1">

@@ -1,10 +1,15 @@
-<div class="ani-in flex items-center gap-2 py-1.5 px-2 hover:bg-white/40 transition-all duration-200 group" data-img-id="{{ img.id }}">
-  <input type="checkbox" x-show="selectionMode" :checked="selected.includes({{ img.id }})" @change="toggleSelect({{ img.id }})" class="w-3 h-3 rounded border-gray-300 text-blue-500 cursor-pointer flex-shrink-0">
-  <div class="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer bg-gray-100/50" @click="openLightbox('/thumbnails/{{ img.md5_hash }}_1024.jpg', [], 0)">
+<div class="ani-in flex items-center gap-2 py-1.5 px-2 hover:bg-white/40 transition-all duration-200 group cursor-pointer"
+     data-img-id="{{ img.id }}"
+     @click="toggleSelect({{ img.id }})"
+     :class="selected.includes({{ img.id }}) ? 'bg-blue-50/60' : ''">
+  <div @click.stop>
+    <input type="checkbox" :checked="selected.includes({{ img.id }})" @change="toggleSelect({{ img.id }})" class="w-3 h-3 rounded border-gray-300 text-blue-500 cursor-pointer flex-shrink-0">
+  </div>
+  <div class="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100/50">
     <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="" loading="lazy" class="w-full h-full object-cover">
   </div>
   <div class="flex-1 min-w-0 text-xs text-gray-600 truncate">{{ img.filename }}</div>
-  <div class="flex items-center gap-0.5 flex-shrink-0">
+  <div class="flex items-center gap-0.5 flex-shrink-0" @click.stop>
     <form action="/pending/{{ img.id }}/confirm" method="post" style="display:inline">
       <input type="hidden" name="category" value="{{ (img.suggested_category_list or [''])[0] }}">
       <button type="submit" class="glass-btn glass-green w-5 h-5 rounded-full flex items-center justify-center text-[7px]" title="归档"><i class="fa-solid fa-check"></i></button>

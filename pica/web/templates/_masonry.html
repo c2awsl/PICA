@@ -1,8 +1,12 @@
-<div class="ani-in break-inside-avoid mb-4 glass-card rounded-2xl overflow-hidden group relative" data-img-id="{{ img.id }}">
-  <div x-show="selectionMode" class="absolute top-2 left-2 z-10">
+<div class="ani-in break-inside-avoid mb-4 glass-card rounded-2xl overflow-hidden group relative cursor-pointer transition-all duration-150"
+     data-img-id="{{ img.id }}"
+     @click="toggleSelect({{ img.id }})"
+     :class="selected.includes({{ img.id }}) ? 'ring-2 ring-blue-500 ring-offset-1' : ''">
+  <div class="absolute top-2 left-2 z-10" @click.stop>
     <input type="checkbox" :checked="selected.includes({{ img.id }})" @change="toggleSelect({{ img.id }})" class="w-3.5 h-3.5 rounded border-white/60 text-blue-500 cursor-pointer shadow">
   </div>
-  <div class="cursor-pointer" @click="openLightbox('/thumbnails/{{ img.md5_hash }}_1024.jpg', [], 0)">
+  <div class="relative" draggable="true"
+       @dragstart="onDragStart($event, {id:{{ img.id }},thumb:'/thumbnails/{{ img.md5_hash }}_256.jpg',lightbox:'/thumbnails/{{ img.md5_hash }}_1024.jpg'})">
     <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="{{ img.filename }}" loading="lazy" class="w-full h-auto object-cover block bg-gray-100/50">
   </div>
   <div class="flex items-center justify-between px-2 py-1.5 border-t border-white/20 gap-1">
@@ -15,7 +19,7 @@
       <span class="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-gray-400" title="等待识别"></span>
       {% endif %}
     </div>
-    <div class="flex items-center gap-1 flex-shrink-0">
+    <div class="flex items-center gap-1 flex-shrink-0" @click.stop>
       {% if img.ai_status == 'failed' %}
       <form action="/pending/{{ img.id }}/retry-ai" method="post"><button type="submit" class="glass-btn glass-gray w-6 h-6 rounded-full flex items-center justify-center text-[9px]" title="重试AI"><i class="fa-solid fa-rotate"></i></button></form>
       {% endif %}

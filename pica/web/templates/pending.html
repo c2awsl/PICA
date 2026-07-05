@@ -30,26 +30,14 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
 .glass-btn:hover { transform: scale(1.12); box-shadow: 0 8px 40px rgba(0,0,0,0.1); }
 .glass-btn:active { transform: scale(0.92); }
 
-.glass-green {
-  background: rgba(52,199,89,0.2); color: #1a6a32;
-}
+.glass-green { background: rgba(52,199,89,0.2); color: #1a6a32; }
 .glass-green:hover { background: rgba(52,199,89,0.92); color: #fff; box-shadow: 0 8px 32px rgba(52,199,89,0.3); }
-
-.glass-red {
-  background: rgba(255,69,58,0.2); color: #9b1c1c;
-}
+.glass-red { background: rgba(255,69,58,0.2); color: #9b1c1c; }
 .glass-red:hover { background: rgba(255,69,58,0.92); color: #fff; box-shadow: 0 8px 32px rgba(255,69,58,0.3); }
-
-.glass-blue {
-  background: rgba(0,122,255,0.2); color: #003d7a;
-}
+.glass-blue { background: rgba(0,122,255,0.2); color: #003d7a; }
 .glass-blue:hover { background: rgba(0,122,255,0.92); color: #fff; box-shadow: 0 8px 32px rgba(0,122,255,0.3); }
-
-.glass-gray {
-  background: rgba(0,0,0,0.04); color: #555;
-}
+.glass-gray { background: rgba(0,0,0,0.04); color: #555; }
 .glass-gray:hover { background: rgba(0,0,0,0.08); color: #333; }
-
 .glass-card {
   background: rgba(255,255,255,0.72); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 2px 20px rgba(0,0,0,0.04);
@@ -65,6 +53,16 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
 .toolbar-btn:active { transform: scale(0.96); }
 .toolbar-btn-active { background: rgba(0,122,255,0.15); color: #007aff; }
 .toolbar-btn-active:hover { background: rgba(0,122,255,0.22); }
+
+.panel-btn {
+  cursor: pointer; border: none; outline: none; height: 36px;
+  padding: 0 16px; display: inline-flex; align-items: center; gap: 6px;
+  border-radius: 10px; font-size: 12px; font-weight: 600; transition: all 0.2s;
+  background: rgba(0,0,0,0.04); color: #555;
+}
+.panel-btn:hover { transform: translateY(-1px); }
+.panel-btn.active { background: rgba(0,122,255,0.12); color: #007aff; box-shadow: inset 0 -2px 0 #007aff; }
+.panel-btn i { font-size: 11px; }
 
 .apple-dropdown {
   background: rgba(255,255,255,0.85); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
@@ -95,10 +93,7 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
 .ani-in { animation: fadeUp 0.4s cubic-bezier(0.25,0.46,0.45,0.94) both; }
 @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
 
-/* ── Modal backdrop ── */
-.modal-backdrop { background:rgba(0,0,0,0.3); backdrop-filter:blur(4px); }
-
-/* ── Tag chips ── */
+/* Tag chips */
 .tag-chip {
   display:inline-flex; align-items:center; gap:4px;
   padding:2px 10px; border-radius:999px; font-size:11px; font-weight:500;
@@ -107,6 +102,45 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
 }
 .tag-chip:hover { background:rgba(0,122,255,0.15); }
 .tag-chip.selected { background:rgba(0,122,255,0.92); color:#fff; }
+
+/* Panel chips */
+.panel-chip {
+  display:inline-flex; align-items:center; gap:5px;
+  padding:6px 14px; border-radius:999px; font-size:12px; font-weight:500;
+  cursor:pointer; transition:all 0.2s; user-select:none;
+  border: 1.5px solid transparent;
+}
+.panel-chip:hover { transform:translateY(-1px); }
+.panel-chip:active { transform:scale(0.96); }
+.panel-chip-cat {
+  background:rgba(0,122,255,0.08); color:#007aff; border-color:rgba(0,122,255,0.15);
+}
+.panel-chip-cat.selected { background:#007aff; color:#fff; border-color:#007aff; }
+.panel-chip-tag {
+  background:rgba(175,82,222,0.08); color:#7b2f9e; border-color:rgba(175,82,222,0.15);
+}
+.panel-chip-tag.selected { background:#7b2f9e; color:#fff; border-color:#7b2f9e; }
+.panel-chip-type {
+  background:rgba(255,149,0,0.08); color:#b86800; border-color:rgba(255,149,0,0.15);
+}
+.panel-chip-type.selected { background:#ff9500; color:#fff; border-color:#ff9500; }
+
+/* Selection highlight */
+.img-selected {
+  outline: 3px solid #007aff; outline-offset: -3px;
+  border-radius: 12px; position: relative;
+}
+
+/* Floating action bar */
+.floating-bar {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: rgba(255,255,255,0.92); backdrop-filter: blur(40px);
+  border: 1px solid rgba(255,255,255,0.4);
+  border-radius: 18px; box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+  padding: 8px 16px; display: flex; align-items: center; gap: 8px;
+  z-index: 50; white-space: nowrap;
+}
+
 [x-cloak] { display: none !important; }
 </style>
 {% endblock %}
@@ -114,111 +148,197 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
 {% block content %}
 <div x-data="pendingApp()" class="min-h-screen" style="background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 
-  <!-- ═══ Glass Toolbar ═══ -->
-  <div class="glass-heavy sticky top-0 z-30 border-b border-white/30 px-5 py-3 flex items-center gap-3 select-none">
-    <div class="flex items-center gap-0.5 text-gray-400 text-xs">
-      <button onclick="window.history.back()" class="w-7 h-7 rounded-full hover:bg-black/5 transition-colors flex items-center justify-center"><i class="fa-solid fa-chevron-left"></i></button>
-      <button onclick="window.history.forward()" class="w-7 h-7 rounded-full hover:bg-black/5 transition-colors flex items-center justify-center"><i class="fa-solid fa-chevron-right"></i></button>
-      <button @click="mode = mode === 'overview' ? 'grid' : 'overview'" class="toolbar-btn ml-1" :class="mode === 'overview' ? 'toolbar-btn-active' : ''">
-        <i class="fa-solid" :class="mode === 'overview' ? 'fa-compass' : 'fa-th-large'"></i>
-        <span class="hidden sm:inline" x-text="mode === 'overview' ? '浏览' : '列表'"></span>
-      </button>
-    </div>
-
-    <div class="flex-1 flex justify-center max-w-lg mx-auto">
-      <div class="relative w-full">
-        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"></i>
-        <input type="search" x-model="searchText" @input.debounce="doSearch" placeholder="搜索"
-          class="apple-search">
-        <button x-show="searchText" @click="searchText='';doSearch()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm bg-white/60 rounded-full w-5 h-5 flex items-center justify-center">
-          <i class="fa-solid fa-xmark"></i>
+  <!-- ═══ Toolbar ═══ -->
+  <div class="glass-heavy sticky top-0 z-30 border-b border-white/30 select-none">
+    <!-- Row 1: nav + controls -->
+    <div class="px-5 py-2.5 flex items-center gap-3">
+      <div class="flex items-center gap-0.5 text-gray-400 text-xs">
+        <button onclick="window.history.back()" class="w-7 h-7 rounded-full hover:bg-black/5 transition-colors flex items-center justify-center"><i class="fa-solid fa-chevron-left"></i></button>
+        <button onclick="window.history.forward()" class="w-7 h-7 rounded-full hover:bg-black/5 transition-colors flex items-center justify-center"><i class="fa-solid fa-chevron-right"></i></button>
+        <button @click="mode = mode === 'overview' ? 'grid' : 'overview'" class="toolbar-btn ml-1" :class="mode === 'overview' ? 'toolbar-btn-active' : ''">
+          <i class="fa-solid" :class="mode === 'overview' ? 'fa-compass' : 'fa-th-large'"></i>
+          <span class="hidden sm:inline" x-text="mode === 'overview' ? '浏览' : '列表'"></span>
         </button>
       </div>
-    </div>
 
-    <div class="flex items-center gap-2">
-      <!-- View mode -->
-      <div class="relative" x-data="{ open: false }" @click.outside="open=false">
-        <button @click="open=!open" class="toolbar-btn" :class="{'toolbar-btn-active':open}">
-          <i class="fa-solid" :class="viewIcon"></i>
-          <span x-text="viewLabel" class="hidden sm:inline"></span>
-          <i class="fa-solid fa-chevron-down text-[9px] opacity-50"></i>
-        </button>
-        <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" class="absolute right-0 top-full mt-2 apple-dropdown z-40">
-          <template x-for="v in views" :key="v.id">
-            <button @click="switchView(v.id); open=false" :class="view===v.id ? 'bg-blue-50 text-blue-600 font-medium' : ''">
-              <i class="fa-solid w-4 text-center" :class="v.icon"></i>
-              <span x-text="v.label"></span>
-            </button>
-          </template>
+      <div class="flex-1 flex justify-center max-w-lg mx-auto">
+        <div class="relative w-full">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"></i>
+          <input type="search" x-model="searchText" @input.debounce="doSearch" placeholder="搜索"
+            class="apple-search">
+          <button x-show="searchText" @click="searchText='';doSearch()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm bg-white/60 rounded-full w-5 h-5 flex items-center justify-center">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
         </div>
       </div>
 
-      <!-- Sort -->
-      <div class="relative" x-data="{ open: false }" @click.outside="open=false">
-        <button @click="open=!open" class="toolbar-btn" :class="{'toolbar-btn-active':open}">
-          <i class="fa-solid fa-arrow-up-wide-short"></i>
-          <span x-text="sortLabel" class="hidden sm:inline"></span>
+      <div class="flex items-center gap-2">
+        <div class="relative" x-data="{ open: false }" @click.outside="open=false">
+          <button @click="open=!open" class="toolbar-btn" :class="{'toolbar-btn-active':open}">
+            <i class="fa-solid" :class="viewIcon"></i>
+            <span x-text="viewLabel" class="hidden sm:inline"></span>
+            <i class="fa-solid fa-chevron-down text-[9px] opacity-50"></i>
+          </button>
+          <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" class="absolute right-0 top-full mt-2 apple-dropdown z-40">
+            <template x-for="v in views" :key="v.id">
+              <button @click="switchView(v.id); open=false" :class="view===v.id ? 'bg-blue-50 text-blue-600 font-medium' : ''">
+                <i class="fa-solid w-4 text-center" :class="v.icon"></i>
+                <span x-text="v.label"></span>
+              </button>
+            </template>
+          </div>
+        </div>
+
+        <div class="relative" x-data="{ open: false }" @click.outside="open=false">
+          <button @click="open=!open" class="toolbar-btn" :class="{'toolbar-btn-active':open}">
+            <i class="fa-solid fa-arrow-up-wide-short"></i>
+            <span x-text="sortLabel" class="hidden sm:inline"></span>
+          </button>
+          <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" class="absolute right-0 top-full mt-2 apple-dropdown z-40">
+            <template x-for="s in sorts" :key="s.id">
+              <button @click="setSort(s.id); open=false" :class="sort===s.id ? 'bg-blue-50 text-blue-600 font-medium' : ''">
+                <span x-text="s.label"></span>
+                <template x-if="sort===s.id"><i class="fa-solid ml-auto" :class="order==='desc'?'fa-arrow-down-short-wide':'fa-arrow-up-short-wide'"></i></template>
+              </button>
+            </template>
+            <div class="border-t border-black/5 mt-1 pt-1">
+              <button @click="order=order==='desc'?'asc':'desc'; applyParams(); open=false" class="text-gray-500">
+                <i class="fa-solid w-4" :class="order==='desc'?'fa-arrow-down-z-a':'fa-arrow-up-a-z'"></i>
+                <span x-text="order==='desc'?'降序':'升序'"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button @click="filterOpen = !filterOpen" class="toolbar-btn" :class="hasActiveFilter ? 'toolbar-btn-active' : ''">
+          <i class="fa-solid fa-sliders"></i>
+          <span class="hidden sm:inline">筛选</span>
         </button>
-        <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" class="absolute right-0 top-full mt-2 apple-dropdown z-40">
-          <template x-for="s in sorts" :key="s.id">
-            <button @click="setSort(s.id); open=false" :class="sort===s.id ? 'bg-blue-50 text-blue-600 font-medium' : ''">
-              <span x-text="s.label"></span>
-              <template x-if="sort===s.id"><i class="fa-solid ml-auto" :class="order==='desc'?'fa-arrow-down-short-wide':'fa-arrow-up-short-wide'"></i></template>
-            </button>
-          </template>
-          <div class="border-t border-black/5 mt-1 pt-1">
-            <button @click="order=order==='desc'?'asc':'desc'; applyParams(); open=false" class="text-gray-500">
-              <i class="fa-solid w-4" :class="order==='desc'?'fa-arrow-down-z-a':'fa-arrow-up-a-z'"></i>
-              <span x-text="order==='desc'?'降序':'升序'"></span>
+
+        <button @click="showHelp = !showHelp" class="toolbar-btn" :class="showHelp ? 'toolbar-btn-active' : ''">
+          <i class="fa-regular fa-keyboard"></i>
+          <span class="hidden sm:inline">快捷键</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Row 2: action panels bar -->
+    <div class="px-5 py-1.5 flex items-center gap-2 border-t border-white/20">
+      <button @click="togglePanel('category')" class="panel-btn" :class="activePanel === 'category' ? 'active' : ''">
+        <i class="fa-regular fa-folder"></i>分类
+        <template x-if="batchCategory"><span class="bg-blue-500 text-white text-[9px] px-1.5 py-0.5 rounded-full" x-text="batchCategory"></span></template>
+      </button>
+      <button @click="togglePanel('tags')" class="panel-btn" :class="activePanel === 'tags' ? 'active' : ''">
+        <i class="fa-solid fa-tags"></i>标签
+        <template x-if="batchTags.length">
+          <span class="bg-purple-500 text-white text-[9px] px-1.5 py-0.5 rounded-full" x-text="batchTags.length"></span>
+        </template>
+      </button>
+      <button @click="togglePanel('work')" class="panel-btn" :class="activePanel === 'work' ? 'active' : ''">
+        <i class="fa-regular fa-pen-to-square"></i>作品
+        <template x-if="batchWork"><span class="bg-blue-500 text-white text-[9px] px-1.5 py-0.5 rounded-full max-w-[60px] truncate" x-text="batchWork"></span></template>
+      </button>
+      <button @click="togglePanel('type')" class="panel-btn" :class="activePanel === 'type' ? 'active' : ''">
+        <i class="fa-regular fa-image"></i>类型
+        <template x-if="batchType"><span class="bg-orange-500 text-white text-[9px] px-1.5 py-0.5 rounded-full" x-text="batchType"></span></template>
+      </button>
+      <div class="flex-1"></div>
+      <span x-show="selected.length" class="text-xs font-semibold text-blue-600 bg-blue-50/80 px-3 py-1.5 rounded-full border border-blue-200/50 whitespace-nowrap">
+        已选 <span x-text="selected.length"></span> 项
+      </span>
+      <button @click="selectAll" class="text-[11px] text-gray-400 hover:text-blue-500 transition-colors px-2 cursor-pointer bg-transparent border-none" x-show="imageIds.length">全选</button>
+    </div>
+
+    <!-- Row 3: collapsible panels -->
+    <template x-if="activePanel">
+      <div class="border-t border-white/20 bg-white/40 backdrop-blur-sm px-5 py-4">
+        <!-- ═══ Category Panel ═══ -->
+        <div x-show="activePanel === 'category'" x-cloak>
+          <div class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">选择分类</div>
+          <div class="flex flex-wrap gap-2" x-show="categories.length">
+            <template x-for="cat in categories" :key="cat.id">
+              <button @click="setBatchCategory(cat.name)"
+                      class="panel-chip panel-chip-cat" :class="batchCategory === cat.name ? 'selected' : ''">
+                <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" :style="'background:' + (cat.color||'#007aff')"></span>
+                <span x-text="cat.name"></span>
+              </button>
+            </template>
+          </div>
+          <div class="flex items-center gap-2 mt-2">
+            <input type="text" x-model="batchCategoryInput" @keydown.enter="setBatchCategory(batchCategoryInput)"
+                   placeholder="或输入自定义分类…" class="h-9 px-3 text-sm bg-white border border-gray-200/80 rounded-xl outline-none focus:border-blue-400 w-60">
+            <button @click="setBatchCategory(batchCategoryInput)" class="h-9 px-4 rounded-xl text-xs font-medium glass-btn glass-gray">设置</button>
+            <button @click="batchCategory=''" class="h-9 px-4 rounded-xl text-xs font-medium glass-btn glass-red" x-show="batchCategory">
+              <i class="fa-solid fa-xmark mr-1"></i>清除
             </button>
           </div>
         </div>
+
+        <!-- ═══ Tags Panel ═══ -->
+        <div x-show="activePanel === 'tags'" x-cloak>
+          <div class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">选择标签</div>
+          <div class="flex flex-wrap gap-2" x-show="allTags.length">
+            <template x-for="tag in allTags" :key="tag">
+              <button @click="toggleBatchTag(tag)"
+                      class="panel-chip panel-chip-tag" :class="batchTags.includes(tag) ? 'selected' : ''">
+                <span>#</span><span x-text="tag"></span>
+              </button>
+            </template>
+          </div>
+          <div class="flex items-center gap-2 mt-2">
+            <input type="text" x-model="batchTagInput" @keydown.enter="addBatchTag"
+                   placeholder="添加标签…" class="h-9 px-3 text-sm bg-white border border-gray-200/80 rounded-xl outline-none focus:border-blue-400 w-60">
+            <button @click="addBatchTag" class="h-9 px-4 rounded-xl text-xs font-medium glass-btn glass-gray">添加</button>
+            <button @click="batchTags=[]" class="h-9 px-4 rounded-xl text-xs font-medium glass-btn glass-red" x-show="batchTags.length">
+              <i class="fa-solid fa-xmark mr-1"></i>清除全部
+            </button>
+          </div>
+          <div x-show="batchTags.length" class="mt-2 flex gap-1.5 items-center text-xs text-gray-400">
+            <span>已选:</span>
+            <template x-for="t in batchTags" :key="t">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-100/80 text-purple-700 border border-purple-200 text-[10px] font-medium">
+                <span x-text="t"></span>
+                <button @click="toggleBatchTag(t)" class="hover:text-red-500">&times;</button>
+              </span>
+            </template>
+          </div>
+        </div>
+
+        <!-- ═══ Work Panel ═══ -->
+        <div x-show="activePanel === 'work'" x-cloak>
+          <div class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">作品 / 系列名称</div>
+          <div class="flex items-center gap-2">
+            <input type="text" x-model="batchWork" placeholder="输入作品名称…"
+                   class="h-9 px-3 text-sm bg-white border border-gray-200/80 rounded-xl outline-none focus:border-blue-400 w-80">
+            <button @click="batchWork=''" class="h-9 px-4 rounded-xl text-xs font-medium glass-btn glass-red" x-show="batchWork">
+              <i class="fa-solid fa-xmark mr-1"></i>清除
+            </button>
+          </div>
+          <div x-show="workValues.length" class="mt-3">
+            <div class="text-[10px] text-gray-400 mb-1.5 font-medium">已有作品:</div>
+            <div class="flex flex-wrap gap-1.5">
+              <template x-for="w in workValues" :key="w">
+                <button @click="batchWork=w" class="panel-chip panel-chip-cat text-xs" :class="batchWork===w?'selected':''" x-text="w"></button>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ Type Panel ═══ -->
+        <div x-show="activePanel === 'type'" x-cloak>
+          <div class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">图片类型</div>
+          <div class="flex flex-wrap gap-2">
+            <template x-for="t in typeOptions" :key="t.value">
+              <button @click="batchType = (batchType === t.value ? '' : t.value)"
+                      class="panel-chip panel-chip-type" :class="batchType === t.value ? 'selected' : ''">
+                <span x-text="t.label"></span>
+              </button>
+            </template>
+          </div>
+        </div>
       </div>
-
-      <button @click="filterOpen = !filterOpen" class="toolbar-btn" :class="hasActiveFilter ? 'toolbar-btn-active' : ''">
-        <i class="fa-solid fa-sliders"></i>
-        <span class="hidden sm:inline">筛选</span>
-      </button>
-
-      <button @click="selectionMode = !selectionMode" class="toolbar-btn" :class="selectionMode ? 'toolbar-btn-active' : ''">
-        <i class="fa-regular fa-square-check"></i>
-        <span class="hidden sm:inline" x-text="selectionMode?'取消选择':'选择'"></span>
-      </button>
-
-      <button @click="showHelp = !showHelp" class="toolbar-btn" :class="showHelp ? 'toolbar-btn-active' : ''">
-        <i class="fa-regular fa-keyboard"></i>
-        <span class="hidden sm:inline">快捷键</span>
-      </button>
-
-      <template x-if="selectionMode && selected.length > 0">
-        <span class="text-xs font-semibold text-blue-600 bg-blue-50/80 backdrop-blur px-3 py-1.5 rounded-full whitespace-nowrap border border-blue-200/50">
-          已选 <span x-text="selected.length"></span> 项
-        </span>
-      </template>
-    </div>
+    </template>
   </div>
-
-  <!-- ═══ Selection Mode Bar ═══ -->
-  <template x-if="selectionMode">
-    <div class="sticky top-[68px] z-20 glass border-b border-blue-200/30 px-5 py-3 flex items-center gap-4 flex-wrap text-sm">
-      <label class="flex items-center gap-2 cursor-pointer text-blue-700 select-none">
-        <input type="checkbox" @change="toggleAll" :checked="selected.length === imageIds.length && imageIds.length > 0" class="w-4 h-4 rounded border-blue-400 text-blue-500 focus:ring-blue-400">
-        <span class="font-medium">全选</span>
-      </label>
-      <span class="text-blue-300/60">|</span>
-      <input type="text" x-model="batchCategory" placeholder="归档分类…" class="h-9 px-3 text-sm border border-blue-200/60 rounded-xl bg-white/70 focus:bg-white focus:border-blue-400 outline-none w-32 transition-all backdrop-blur">
-      <button @click="submitBatch('/pending/batch-confirm')" class="h-9 px-5 rounded-xl glass-green font-medium text-sm" :disabled="selected.length===0" :style="selected.length===0?'opacity:0.4;pointer-events:none':''">
-        <i class="fa-solid fa-check mr-1.5"></i>确认归档
-      </button>
-      <button @click="submitBatch('/pending/batch-reject')" class="h-9 px-5 rounded-xl glass-red font-medium text-sm" :disabled="selected.length===0" :style="selected.length===0?'opacity:0.4;pointer-events:none':''">
-        <i class="fa-solid fa-xmark mr-1.5"></i>驳回
-      </button>
-      <button @click="submitBatch('/pending/batch-retry-ai')" class="h-9 px-5 rounded-xl glass-gray font-medium text-sm" :disabled="selected.length===0" :style="selected.length===0?'opacity:0.4;pointer-events:none':''">
-        <i class="fa-solid fa-rotate mr-1.5"></i>重试 AI
-      </button>
-    </div>
-  </template>
 
   <!-- ═══ Filter Bar ═══ -->
   <template x-if="filterOpen">
@@ -269,7 +389,6 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
       <span><kbd class="bg-white/70 px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[10px]">A</kbd> 选中/取消</span>
       <span><kbd class="bg-white/70 px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[10px]">C</kbd> 归档</span>
       <span><kbd class="bg-white/70 px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[10px]">X</kbd> 驳回</span>
-      <span><kbd class="bg-white/70 px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[10px]">R</kbd> 重试 AI</span>
       <span><kbd class="bg-white/70 px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[10px]">E</kbd> 编辑</span>
       <span><kbd class="bg-white/70 px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[10px]">/</kbd> 搜索</span>
       <button @click="showHelp=false" class="ml-auto text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>
@@ -298,7 +417,6 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
     </div>
     <template x-if="!overviewLoading && overview">
       <div class="space-y-8">
-        <!-- Stats bar -->
         <div class="flex items-center gap-4 text-sm">
           <span class="font-semibold text-gray-800 text-base">待确认概览</span>
           <span class="bg-blue-50/80 text-blue-600 px-3 py-1 rounded-full text-xs font-medium border border-blue-200/50">
@@ -308,8 +426,6 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
             <i class="fa-solid fa-list mr-1"></i>全部列表
           </button>
         </div>
-
-        <!-- Category cards -->
         <template x-if="overview.categories && overview.categories.length">
           <div>
             <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">按分类浏览</h3>
@@ -322,16 +438,12 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
                     <i class="fa-solid fa-folder"></i>
                   </div>
                   <div class="text-sm font-semibold text-gray-800 group-hover:text-blue-600 transition-colors truncate" x-text="cat.name"></div>
-                  <div class="text-xs text-gray-400 mt-0.5">
-                    <span x-text="cat.total !== null ? cat.total + ' 张' : '?'"></span>
-                  </div>
+                  <div class="text-xs text-gray-400 mt-0.5" x-text="cat.total !== null ? cat.total + ' 张' : '?'"></div>
                 </button>
               </template>
             </div>
           </div>
         </template>
-
-        <!-- Work cards -->
         <template x-if="overview.works && overview.works.length">
           <div>
             <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">按作品浏览</h3>
@@ -341,39 +453,6 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
                   class="glass-card rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 cursor-pointer">
                   <span class="text-gray-800" x-text="w.name"></span>
                   <span class="text-gray-400 ml-1.5 text-xs" x-text="w.total + '张'"></span>
-                </button>
-              </template>
-            </div>
-          </div>
-        </template>
-
-        <!-- Tag chips -->
-        <template x-if="overview.tags && overview.tags.length">
-          <div>
-            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">按标签浏览</h3>
-            <div class="flex flex-wrap gap-2">
-              <template x-for="tag in overview.tags" :key="tag.name">
-                <button @click="switchToGrid({q: tag.name})"
-                  class="tag-chip text-sm px-3 py-1.5 transition-all duration-300 hover:shadow-md cursor-pointer"
-                  :style="'background:' + (tag.color || '#007AFF') + '18; color:' + (tag.color || '#007AFF')">
-                  <span>#</span><span x-text="tag.name"></span>
-                  <span class="ml-1 opacity-60" x-text="tag.total"></span>
-                </button>
-              </template>
-            </div>
-          </div>
-        </template>
-
-        <!-- AI status -->
-        <template x-if="overview.ai_statuses && overview.ai_statuses.length">
-          <div>
-            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">按 AI 状态</h3>
-            <div class="flex flex-wrap gap-2">
-              <template x-for="st in overview.ai_statuses" :key="st.name">
-                <button @click="switchToGrid({ai_status: st.name})"
-                  class="glass-card rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 hover:shadow-md cursor-pointer">
-                  <span x-text="{'pending':'⏳ 待识别','processing':'🔄 识别中','done':'✅ 已完成','failed':'❌ 失败'}[st.name] || st.name"></span>
-                  <span class="text-gray-400 ml-1.5 text-xs" x-text="st.total + '张'"></span>
                 </button>
               </template>
             </div>
@@ -428,111 +507,29 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
       {% include '_group_items.html' %}
     {% endif %}
   </div>
-  <!-- End grid mode -->
 
-  <!-- ═══ Confirm Modal ═══ -->
-  <template x-teleport="body">
-    <div x-show="modalOpen" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop" x-cloak
-      @click.self="closeModal()" @keydown.escape="closeModal()">
-      <div class="relative bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/40 w-full max-w-lg mx-4 max-h-[80vh] overflow-y-auto" @click.stop>
-        <div class="flex items-center justify-between p-5 pb-3 border-b border-gray-100/80">
-          <h3 class="text-base font-semibold text-gray-800 flex items-center gap-2">
-            <i class="fa-regular fa-pen-to-square text-blue-500"></i>
-            确认归档
-          </h3>
-          <button @click="closeModal()" class="w-7 h-7 rounded-full hover:bg-black/5 transition-colors flex items-center justify-center text-gray-400">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </div>
-
-        <div class="p-5 space-y-4">
-          <!-- AI suggested categories -->
-          <template x-if="modalData.suggested_category && modalData.suggested_category.length">
-            <div>
-              <label class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">AI 建议分类</label>
-              <div class="flex flex-wrap gap-1.5 mt-1.5">
-                <template x-for="cat in modalData.suggested_category" :key="cat">
-                  <button @click="setModalField('category', cat); modalCategory = cat"
-                    class="tag-chip" :class="modalCategory === cat ? 'selected' : ''"
-                    x-text="cat">
-                  </button>
-                </template>
-              </div>
-            </div>
-          </template>
-
-          <!-- Category input -->
-          <div>
-            <label class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">归档分类</label>
-            <input type="text" x-model="modalCategory" placeholder="输入分类名称"
-              class="w-full mt-1 h-10 px-3 text-sm border border-gray-200/80 rounded-xl bg-white/80 focus:bg-white focus:border-blue-400 outline-none transition-all">
-          </div>
-
-          <!-- Work -->
-          <div>
-            <label class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">作品 / 系列</label>
-            <input type="text" x-model="modalWork" :placeholder="modalData.work_name || '未知作品'"
-              class="w-full mt-1 h-10 px-3 text-sm border border-gray-200/80 rounded-xl bg-white/80 focus:bg-white focus:border-blue-400 outline-none transition-all">
-          </div>
-
-          <!-- Type -->
-          <div>
-            <label class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">图片类型</label>
-            <select x-model="modalType"
-              class="w-full mt-1 h-10 px-3 text-sm border border-gray-200/80 rounded-xl bg-white/80 focus:bg-white focus:border-blue-400 outline-none transition-all">
-              <option value="">不指定</option>
-              <option value="meme">meme 梗图</option>
-              <option value="emoji">emoji 表情包</option>
-              <option value="screenshot">screenshot 截图</option>
-              <option value="long_screenshot">long_screenshot 长截图</option>
-              <option value="fanart">fanart 同人图</option>
-              <option value="official_art">official_art 官方美术</option>
-              <option value="ai_generated">ai_generated AI 生成</option>
-              <option value="photo">photo 照片</option>
-              <option value="scan">scan 扫描件</option>
-              <option value="text_screenshot">text_screenshot 文字截图</option>
-            </select>
-          </div>
-
-          <!-- Tags -->
-          <div>
-            <label class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">标签</label>
-            <div class="flex flex-wrap gap-1.5 mt-1.5">
-              <template x-for="tag in modalTags" :key="tag">
-                <button @click="toggleModalTag(tag)"
-                  class="tag-chip" :class="modalSelectedTags.includes(tag) ? 'selected bg-blue-500 text-white' : ''"
-                  x-text="tag">
-                </button>
-              </template>
-            </div>
-            <div class="flex gap-2 mt-2">
-              <input type="text" x-model="newTag" @keydown.enter.prevent="addModalTag"
-                placeholder="添加标签…"
-                class="flex-1 h-8 px-3 text-xs border border-gray-200/60 rounded-xl bg-white/70 focus:bg-white focus:border-blue-400 outline-none transition-all">
-              <button @click="addModalTag" class="h-8 px-3 rounded-xl glass-gray text-xs flex items-center gap-1">
-                <i class="fa-solid fa-plus"></i> 添加
-              </button>
-            </div>
-          </div>
-
-          <!-- Preview -->
-          <template x-if="modalImgSrc">
-            <div class="rounded-xl overflow-hidden bg-gray-100/50 border border-white/30">
-              <img :src="modalImgSrc" alt="" class="w-full h-40 object-contain">
-            </div>
-          </template>
-        </div>
-
-        <!-- Actions -->
-        <div class="flex items-center justify-end gap-3 p-5 pt-3 border-t border-gray-100/80">
-          <button @click="closeModal()" class="h-9 px-5 rounded-xl glass-gray text-sm font-medium">
-            取消
-          </button>
-          <button @click="submitConfirm()" class="h-9 px-6 rounded-xl glass-green text-sm font-medium flex items-center gap-1.5">
-            <i class="fa-solid fa-check"></i> 确认归档
-          </button>
-        </div>
-      </div>
+  <!-- ═══ Floating Action Bar ═══ -->
+  <template x-if="selected.length > 0">
+    <div class="floating-bar" x-cloak>
+      <span class="text-sm font-semibold text-blue-600 mr-1" x-text="selected.length + ' 项已选'"></span>
+      <span class="text-gray-300">|</span>
+      <button @click="batchConfirm" class="h-9 px-5 rounded-xl glass-green font-medium text-sm flex items-center gap-1.5" :disabled="selected.length===0">
+        <i class="fa-solid fa-check"></i>归档
+      </button>
+      <button @click="batchReject" class="h-9 px-5 rounded-xl glass-red font-medium text-sm flex items-center gap-1.5" :disabled="selected.length===0">
+        <i class="fa-solid fa-xmark"></i>驳回
+      </button>
+      <button @click="batchRetryAI" class="h-9 px-4 rounded-xl glass-gray font-medium text-sm flex items-center gap-1.5" :disabled="selected.length===0">
+        <i class="fa-solid fa-rotate"></i>重试AI
+      </button>
+      <span class="text-gray-300">|</span>
+      <button @click="batchApply" class="h-9 px-5 rounded-xl glass-blue font-medium text-sm flex items-center gap-1.5"
+              :disabled="!batchCategory && !batchTags.length && !batchWork && !batchType">
+        <i class="fa-solid fa-pen"></i>应用编辑
+      </button>
+      <button @click="selected=[]" class="h-9 px-3 rounded-xl glass-gray text-sm flex items-center">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
     </div>
   </template>
 </div>
@@ -548,27 +545,38 @@ function pendingApp() {
     searchText: '{{ request.query_params.get("q","") }}',
     filterOpen: false,
     showHelp: false,
-    selectionMode: false,
     selected: [],
-    batchCategory: '',
     imageIds: {{ images | map(attribute='id') | list | tojson }},
     q: '{{ request.query_params.get("q","") }}',
+
+    // ── Panel state ──
+    activePanel: null,
+    batchCategory: '',
+    batchCategoryInput: '',
+    batchTags: [],
+    batchTagInput: '',
+    batchWork: '',
+    batchType: '',
+    categories: [],
+    allTags: {{ all_tags | tojson }},
+    workValues: {{ work_values | tojson }},
+    typeOptions: [
+      { value: '', label: '不指定' },
+      { value: 'meme', label: 'meme 梗图' },
+      { value: 'emoji', label: 'emoji 表情包' },
+      { value: 'screenshot', label: 'screenshot 截图' },
+      { value: 'long_screenshot', label: 'long_screenshot 长截图' },
+      { value: 'fanart', label: 'fanart 同人图' },
+      { value: 'official_art', label: 'official_art 官方美术' },
+      { value: 'ai_generated', label: 'ai_generated AI 生成' },
+      { value: 'photo', label: 'photo 照片' },
+      { value: 'scan', label: 'scan 扫描件' },
+      { value: 'text_screenshot', label: 'text_screenshot 文字截图' },
+    ],
 
     // ── Overview data ──
     overview: null,
     overviewLoading: true,
-
-    // ── Modal state ──
-    modalOpen: false,
-    modalId: null,
-    modalData: {},
-    modalCategory: '',
-    modalWork: '',
-    modalType: '',
-    modalTags: [],
-    modalSelectedTags: [],
-    modalImgSrc: '',
-    newTag: '',
 
     // ── Focus tracking for keyboard nav ──
     focusedIndex: -1,
@@ -601,9 +609,6 @@ function pendingApp() {
     get hasActiveFilter() { return this.q || {{ 'true' if request.query_params.get('work','') or request.query_params.get('type','') or request.query_params.get('category','') or request.query_params.get('ai_status','') else 'false' }}; },
 
     init() {
-      const savedSel = sessionStorage.getItem('pendingSelectionMode');
-      if (savedSel === 'true') this.selectionMode = true;
-
       const url = new URL(window.location);
       const hasFilters = url.searchParams.has('work') || url.searchParams.has('type') || url.searchParams.has('category') || url.searchParams.has('q') || url.searchParams.has('ai_status');
       if (hasFilters) this.mode = 'grid';
@@ -619,27 +624,108 @@ function pendingApp() {
         const savedOrder = localStorage.getItem('pica_order');
         if (savedOrder) this.order = savedOrder;
       }
-
-      // Load overview data
       this.fetchOverview();
+      this.fetchCategories();
 
-      // Keyboard shortcuts
       document.addEventListener('keydown', (e) => {
-        if (this.modalOpen) return;
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
-
         switch (e.key.toLowerCase()) {
           case 'j': e.preventDefault(); this.navNext(); break;
           case 'k': e.preventDefault(); this.navPrev(); break;
           case 'a': e.preventDefault(); this.toggleFocused(); break;
           case 'c': e.preventDefault(); this.confirmFocused(); break;
           case 'x': e.preventDefault(); this.rejectFocused(); break;
-          case 'r': e.preventDefault(); this.retryFocused(); break;
           case 'e': e.preventDefault(); this.editFocused(); break;
           case '/': e.preventDefault(); document.querySelector('.apple-search')?.focus(); break;
           case '?': e.preventDefault(); this.showHelp = !this.showHelp; break;
         }
       });
+    },
+
+    // ── Categories ──
+    async fetchCategories() {
+      try {
+        const r = await fetch('/categories/data');
+        if (r.ok) {
+          const data = await r.json();
+          const flatten = (nodes) => {
+            for (const n of nodes) {
+              this.categories.push({id: n.id, name: n.name, color: n.color, parent_id: n.parent_id});
+              if (n.children) flatten(n.children);
+            }
+          };
+          flatten(data.tree);
+        }
+      } catch(e) {}
+    },
+
+    // ── Panel ──
+    togglePanel(name) {
+      this.activePanel = this.activePanel === name ? null : name;
+      if (name === 'category') this.batchCategoryInput = this.batchCategory;
+    },
+    setBatchCategory(name) {
+      this.batchCategory = name;
+    },
+    toggleBatchTag(tag) {
+      const idx = this.batchTags.indexOf(tag);
+      if (idx >= 0) this.batchTags.splice(idx, 1);
+      else this.batchTags.push(tag);
+    },
+    addBatchTag() {
+      const t = this.batchTagInput.trim();
+      if (!t) return;
+      if (!this.batchTags.includes(t)) this.batchTags.push(t);
+      this.batchTagInput = '';
+    },
+
+    // ── Selection ──
+    selectAll() {
+      if (this.selected.length === this.imageIds.length) {
+        this.selected = [];
+      } else {
+        this.selected = [...this.imageIds];
+      }
+    },
+    toggleSelect(imgId) {
+      const idx = this.selected.indexOf(imgId);
+      if (idx >= 0) this.selected.splice(idx, 1);
+      else this.selected.push(imgId);
+    },
+
+    // ── Batch Actions ──
+    async batchApply() {
+      if (!this.selected.length) return;
+      const fd = new FormData();
+      this.selected.forEach(id => fd.append('image_ids', id));
+      if (this.batchCategory) fd.append('category', this.batchCategory);
+      if (this.batchTags.length) fd.append('tags', this.batchTags.join(','));
+      if (this.batchWork) fd.append('work', this.batchWork);
+      if (this.batchType) fd.append('image_type', this.batchType);
+      await fetch('/pending/batch-edit', { method: 'POST', body: fd });
+      window.location.reload();
+    },
+    async batchConfirm() {
+      if (!this.selected.length) return;
+      const fd = new FormData();
+      this.selected.forEach(id => fd.append('image_ids', id));
+      fd.append('redirect', '/pending?group=' + this.groupBy + '&view=' + this.view);
+      if (this.batchCategory) fd.append('category', this.batchCategory);
+      await fetch('/pending/batch-confirm', { method: 'POST', body: fd }).then(r => { if (r.redirected) window.location.href = r.url; });
+    },
+    async batchReject() {
+      if (!this.selected.length) return;
+      const fd = new FormData();
+      this.selected.forEach(id => fd.append('image_ids', id));
+      fd.append('redirect', '/pending?group=' + this.groupBy + '&view=' + this.view);
+      await fetch('/pending/batch-reject', { method: 'POST', body: fd }).then(r => { if (r.redirected) window.location.href = r.url; });
+    },
+    async batchRetryAI() {
+      if (!this.selected.length) return;
+      const fd = new FormData();
+      this.selected.forEach(id => fd.append('image_ids', id));
+      fd.append('redirect', '/pending?group=' + this.groupBy + '&view=' + this.view);
+      await fetch('/pending/batch-retry-ai', { method: 'POST', body: fd }).then(r => { if (r.redirected) window.location.href = r.url; });
     },
 
     // ── Overview ──
@@ -659,62 +745,6 @@ function pendingApp() {
       }
       url.searchParams.set('view', this.view);
       window.location.href = url;
-    },
-
-    // ── Confirm Modal ──
-    async openModal(imgId) {
-      this.modalId = imgId;
-      this.modalOpen = true;
-      this.newTag = '';
-      try {
-        const r = await fetch(`/pending/${imgId}/data`);
-        if (!r.ok) return;
-        const data = await r.json();
-        this.modalData = data;
-        this.modalCategory = data.suggested_category?.[0] || '';
-        this.modalWork = data.work_name || '';
-        this.modalType = data.image_type || '';
-        this.modalTags = data.all_tags || [];
-        this.modalSelectedTags = [...(data.suggested_tags || [])];
-        this.modalImgSrc = `/thumbnails/${data.md5_hash}_256.jpg`;
-      } catch(e) {
-        console.error('Modal fetch error:', e);
-      }
-    },
-    closeModal() {
-      this.modalOpen = false;
-      this.modalId = null;
-      this.modalData = {};
-      this.newTag = '';
-    },
-    setModalField(field, value) {
-      if (field === 'category') this.modalCategory = value;
-      else if (field === 'work') this.modalWork = value;
-      else if (field === 'type') this.modalType = value;
-    },
-    toggleModalTag(tag) {
-      const idx = this.modalSelectedTags.indexOf(tag);
-      if (idx >= 0) this.modalSelectedTags.splice(idx, 1);
-      else this.modalSelectedTags.push(tag);
-    },
-    addModalTag() {
-      const t = this.newTag.trim();
-      if (!t) return;
-      if (!this.modalTags.includes(t)) this.modalTags.push(t);
-      if (!this.modalSelectedTags.includes(t)) this.modalSelectedTags.push(t);
-      this.newTag = '';
-    },
-    async submitConfirm() {
-      if (!this.modalId) return;
-      const formData = new FormData();
-      formData.append('category', this.modalCategory);
-      formData.append('tags', this.modalSelectedTags.join(','));
-      formData.append('work', this.modalWork);
-      formData.append('image_type', this.modalType);
-      const r = await fetch(`/pending/${this.modalId}/confirm`, { method: 'POST', body: formData });
-      this.closeModal();
-      if (r.redirected) window.location.href = r.url;
-      else window.location.reload();
     },
 
     // ── Keyboard navigation ──
@@ -746,26 +776,22 @@ function pendingApp() {
     confirmFocused() {
       const id = this.focusedId;
       if (!id || this.focusedIndex < 0) return;
-      this.openModal(id);
+      const fd = new FormData();
+      fd.append('redirect', window.location.pathname + window.location.search);
+      fetch(`/pending/${id}/confirm`, { method: 'POST', body: fd }).then(r => { if (r.redirected) window.location.href = r.url; });
     },
     rejectFocused() {
       const id = this.focusedId;
       if (!id || this.focusedIndex < 0) return;
-      const formData = new FormData();
-      formData.append('redirect', window.location.pathname + window.location.search);
-      fetch(`/pending/${id}/reject`, { method: 'POST', body: formData }).then(r => { if (r.redirected) window.location.href = r.url; });
-    },
-    retryFocused() {
-      const id = this.focusedId;
-      if (!id || this.focusedIndex < 0) return;
-      const formData = new FormData();
-      formData.append('redirect', window.location.pathname + window.location.search);
-      fetch(`/pending/${id}/retry-ai`, { method: 'POST', body: formData }).then(r => { if (r.redirected) window.location.href = r.url; });
+      const fd = new FormData();
+      fd.append('redirect', window.location.pathname + window.location.search);
+      fetch(`/pending/${id}/reject`, { method: 'POST', body: fd }).then(r => { if (r.redirected) window.location.href = r.url; });
     },
     editFocused() {
       const id = this.focusedId;
       if (!id || this.focusedIndex < 0) return;
-      this.openModal(id);
+      this.selected = [id];
+      this.activePanel = 'category';
     },
 
     switchView(v) {
@@ -780,11 +806,6 @@ function pendingApp() {
       this.sort = s;
       this.applyParams();
     },
-    toggleOrder() {
-      this.order = this.order === 'desc' ? 'asc' : 'desc';
-      localStorage.setItem('pica_order', this.order);
-      this.applyParams();
-    },
     applyParams() {
       const url = new URL(window.location);
       url.searchParams.set('sort', this.sort); url.searchParams.set('order', this.order);
@@ -792,19 +813,6 @@ function pendingApp() {
       window.location.href = url;
     },
     doSearch() { this.q = this.searchText; this.applyParams(); },
-    toggleAll(e) { if (e.target.checked) this.selected = [...this.imageIds]; else this.selected = []; },
-    toggleSelect(imgId) {
-      const idx = this.selected.indexOf(imgId);
-      if (idx >= 0) this.selected.splice(idx, 1); else this.selected.push(imgId);
-    },
-    submitBatch(action) {
-      if (this.selected.length === 0) return;
-      const formData = new FormData();
-      this.selected.forEach(id => formData.append('image_ids', id));
-      formData.append('redirect', '/pending?group=' + this.groupBy + '&view=' + this.view);
-      if (this.batchCategory) formData.append('category', this.batchCategory);
-      fetch(action, { method: 'POST', body: formData }).then(r => { if (r.redirected) window.location.href = r.url; });
-    },
   }
 }
 </script>
