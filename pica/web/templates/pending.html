@@ -17,12 +17,10 @@ tailwind.config = {
 <style>
 html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f5f5f7; }
 
-/* ── Glassmorphism base ── */
 .glass { background: rgba(255,255,255,0.65); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); }
 .glass-sm { background: rgba(255,255,255,0.55); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
 .glass-heavy { background: rgba(255,255,255,0.8); backdrop-filter: blur(60px); -webkit-backdrop-filter: blur(60px); }
 
-/* ── Glass action buttons ── */
 .glass-btn {
   cursor: pointer; border: none; outline: none;
   transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -52,13 +50,11 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
 }
 .glass-gray:hover { background: rgba(0,0,0,0.08); color: #333; }
 
-/* ── Glass card ── */
 .glass-card {
   background: rgba(255,255,255,0.72); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 2px 20px rgba(0,0,0,0.04);
 }
 
-/* ── Toolbar buttons (pill style) ── */
 .toolbar-btn {
   height: 34px; padding: 0 14px; display: inline-flex; align-items: center; gap: 6px;
   border-radius: 999px; font-size: 12px; font-weight: 500; cursor: pointer; border: none; outline: none;
@@ -70,7 +66,6 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
 .toolbar-btn-active { background: rgba(0,122,255,0.15); color: #007aff; }
 .toolbar-btn-active:hover { background: rgba(0,122,255,0.22); }
 
-/* ── Dropdown menu (Apple style) ── */
 .apple-dropdown {
   background: rgba(255,255,255,0.85); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
   border: 1px solid rgba(0,0,0,0.06); border-radius: 14px; box-shadow: 0 8px 40px rgba(0,0,0,0.1);
@@ -82,7 +77,6 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
 }
 .apple-dropdown button:hover { background: rgba(0,122,255,0.08); }
 
-/* ── Search field (Apple style) ── */
 .apple-search {
   width: 100%; height: 36px; padding: 0 14px 0 36px; font-size: 13px;
   background: rgba(120,120,128,0.08); border: 1px solid rgba(120,120,128,0.12);
@@ -90,22 +84,30 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
 }
 .apple-search:focus { background: rgba(255,255,255,0.95); border-color: rgba(0,122,255,0.4); box-shadow: 0 0 0 3px rgba(0,122,255,0.15); }
 
-/* ── Layout helpers ── */
 .v-list>div:nth-child(even) { background: rgba(0,0,0,0.02); }
 .v-list>div:hover { background: rgba(0,122,255,0.04); }
 .masonry { column-count: 4; column-gap: 12px; }
 .masonry>div { break-inside: avoid; }
-@media (max-width: 1200px) { .masonry { column-count: 3; } }
-@media (max-width: 900px) { .masonry { column-count: 2; } }
-@media (max-width: 600px) { .masonry { column-count: 1; } }
+@media (max-width:1200px) { .masonry { column-count: 3; } }
+@media (max-width:900px) { .masonry { column-count: 2; } }
+@media (max-width:600px) { .masonry { column-count: 1; } }
 
-/* ── Entrance animation ── */
 .ani-in { animation: fadeUp 0.4s cubic-bezier(0.25,0.46,0.45,0.94) both; }
-@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-.ani-in-d1 { animation-delay: 0.05s; }
-.ani-in-d2 { animation-delay: 0.1s; }
-.ani-in-d3 { animation-delay: 0.15s; }
-.ani-in-d4 { animation-delay: 0.2s; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+/* ── Modal backdrop ── */
+.modal-backdrop { background:rgba(0,0,0,0.3); backdrop-filter:blur(4px); }
+
+/* ── Tag chips ── */
+.tag-chip {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:2px 10px; border-radius:999px; font-size:11px; font-weight:500;
+  background:rgba(0,122,255,0.08); color:#007aff; border:1px solid rgba(0,122,255,0.15);
+  cursor:pointer; transition:all 0.2s;
+}
+.tag-chip:hover { background:rgba(0,122,255,0.15); }
+.tag-chip.selected { background:rgba(0,122,255,0.92); color:#fff; }
+[x-cloak] { display: none !important; }
 </style>
 {% endblock %}
 
@@ -114,14 +116,11 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
 
   <!-- ═══ Glass Toolbar ═══ -->
   <div class="glass-heavy sticky top-0 z-30 border-b border-white/30 px-5 py-3 flex items-center gap-3 select-none">
-
-    <!-- Nav arrows -->
     <div class="flex items-center gap-0.5 text-gray-400 text-xs">
       <button onclick="window.history.back()" class="w-7 h-7 rounded-full hover:bg-black/5 transition-colors flex items-center justify-center"><i class="fa-solid fa-chevron-left"></i></button>
       <button onclick="window.history.forward()" class="w-7 h-7 rounded-full hover:bg-black/5 transition-colors flex items-center justify-center"><i class="fa-solid fa-chevron-right"></i></button>
     </div>
 
-    <!-- Center search -->
     <div class="flex-1 flex justify-center max-w-lg mx-auto">
       <div class="relative w-full">
         <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"></i>
@@ -133,9 +132,7 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
       </div>
     </div>
 
-    <!-- Right toolbar items -->
     <div class="flex items-center gap-2">
-
       <!-- View mode -->
       <div class="relative" x-data="{ open: false }" @click.outside="open=false">
         <button @click="open=!open" class="toolbar-btn" :class="{'toolbar-btn-active':open}">
@@ -143,7 +140,7 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
           <span x-text="viewLabel" class="hidden sm:inline"></span>
           <i class="fa-solid fa-chevron-down text-[9px] opacity-50"></i>
         </button>
-        <div x-show="open" @click.outside="open=false" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" class="absolute right-0 top-full mt-2 apple-dropdown z-40">
+        <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" class="absolute right-0 top-full mt-2 apple-dropdown z-40">
           <template x-for="v in views" :key="v.id">
             <button @click="switchView(v.id); open=false" :class="view===v.id ? 'bg-blue-50 text-blue-600 font-medium' : ''">
               <i class="fa-solid w-4 text-center" :class="v.icon"></i>
@@ -159,7 +156,7 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
           <i class="fa-solid fa-arrow-up-wide-short"></i>
           <span x-text="sortLabel" class="hidden sm:inline"></span>
         </button>
-        <div x-show="open" @click.outside="open=false" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" class="absolute right-0 top-full mt-2 apple-dropdown z-40">
+        <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" class="absolute right-0 top-full mt-2 apple-dropdown z-40">
           <template x-for="s in sorts" :key="s.id">
             <button @click="setSort(s.id); open=false" :class="sort===s.id ? 'bg-blue-50 text-blue-600 font-medium' : ''">
               <span x-text="s.label"></span>
@@ -175,19 +172,21 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
         </div>
       </div>
 
-      <!-- Filter -->
       <button @click="filterOpen = !filterOpen" class="toolbar-btn" :class="hasActiveFilter ? 'toolbar-btn-active' : ''">
         <i class="fa-solid fa-sliders"></i>
         <span class="hidden sm:inline">筛选</span>
       </button>
 
-      <!-- Select -->
       <button @click="selectionMode = !selectionMode" class="toolbar-btn" :class="selectionMode ? 'toolbar-btn-active' : ''">
         <i class="fa-regular fa-square-check"></i>
         <span class="hidden sm:inline" x-text="selectionMode?'取消选择':'选择'"></span>
       </button>
 
-      <!-- Selection count -->
+      <button @click="showHelp = !showHelp" class="toolbar-btn" :class="showHelp ? 'toolbar-btn-active' : ''">
+        <i class="fa-regular fa-keyboard"></i>
+        <span class="hidden sm:inline">快捷键</span>
+      </button>
+
       <template x-if="selectionMode && selected.length > 0">
         <span class="text-xs font-semibold text-blue-600 bg-blue-50/80 backdrop-blur px-3 py-1.5 rounded-full whitespace-nowrap border border-blue-200/50">
           已选 <span x-text="selected.length"></span> 项
@@ -259,6 +258,20 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
     </div>
   </template>
 
+  <!-- ═══ Keyboard Shortcuts Help ═══ -->
+  <template x-if="showHelp">
+    <div class="glass border-b border-white/20 px-5 py-3 text-xs text-gray-500 flex items-center gap-6 flex-wrap">
+      <span><kbd class="bg-white/70 px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[10px]">J</kbd> / <kbd class="bg-white/70 px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[10px]">K</kbd> 导航</span>
+      <span><kbd class="bg-white/70 px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[10px]">A</kbd> 选中/取消</span>
+      <span><kbd class="bg-white/70 px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[10px]">C</kbd> 归档</span>
+      <span><kbd class="bg-white/70 px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[10px]">X</kbd> 驳回</span>
+      <span><kbd class="bg-white/70 px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[10px]">R</kbd> 重试 AI</span>
+      <span><kbd class="bg-white/70 px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[10px]">E</kbd> 编辑</span>
+      <span><kbd class="bg-white/70 px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[10px]">/</kbd> 搜索</span>
+      <button @click="showHelp=false" class="ml-auto text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+  </template>
+
   <!-- ═══ Group Mode Tabs ═══ -->
   <div class="flex items-center gap-2 px-5 py-3 border-b border-white/30 bg-white/30 backdrop-blur-sm">
     <a href="/pending?group=none&view={{ view }}&sort={{ sort }}&order={{ order }}"
@@ -275,7 +288,7 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
   </div>
 
   <!-- ═══ Content Area ═══ -->
-  <div class="p-5">
+  <div class="p-5" id="content-area">
     {% if not images %}
     <div class="flex flex-col items-center justify-center py-24 text-gray-400 animate__animated animate__fadeIn">
       <i class="fa-regular fa-image text-6xl mb-5 opacity-40"></i>
@@ -313,6 +326,112 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
       {% include '_group_items.html' %}
     {% endif %}
   </div>
+
+  <!-- ═══ Confirm Modal ═══ -->
+  <template x-teleport="body">
+    <div x-show="modalOpen" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop" x-cloak
+      @click.self="closeModal()" @keydown.escape="closeModal()">
+      <div class="relative bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/40 w-full max-w-lg mx-4 max-h-[80vh] overflow-y-auto" @click.stop>
+        <div class="flex items-center justify-between p-5 pb-3 border-b border-gray-100/80">
+          <h3 class="text-base font-semibold text-gray-800 flex items-center gap-2">
+            <i class="fa-regular fa-pen-to-square text-blue-500"></i>
+            确认归档
+          </h3>
+          <button @click="closeModal()" class="w-7 h-7 rounded-full hover:bg-black/5 transition-colors flex items-center justify-center text-gray-400">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="p-5 space-y-4">
+          <!-- AI suggested categories -->
+          <template x-if="modalData.suggested_category && modalData.suggested_category.length">
+            <div>
+              <label class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">AI 建议分类</label>
+              <div class="flex flex-wrap gap-1.5 mt-1.5">
+                <template x-for="cat in modalData.suggested_category" :key="cat">
+                  <button @click="setModalField('category', cat); modalCategory = cat"
+                    class="tag-chip" :class="modalCategory === cat ? 'selected' : ''"
+                    x-text="cat">
+                  </button>
+                </template>
+              </div>
+            </div>
+          </template>
+
+          <!-- Category input -->
+          <div>
+            <label class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">归档分类</label>
+            <input type="text" x-model="modalCategory" placeholder="输入分类名称"
+              class="w-full mt-1 h-10 px-3 text-sm border border-gray-200/80 rounded-xl bg-white/80 focus:bg-white focus:border-blue-400 outline-none transition-all">
+          </div>
+
+          <!-- Work -->
+          <div>
+            <label class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">作品 / 系列</label>
+            <input type="text" x-model="modalWork" :placeholder="modalData.work_name || '未知作品'"
+              class="w-full mt-1 h-10 px-3 text-sm border border-gray-200/80 rounded-xl bg-white/80 focus:bg-white focus:border-blue-400 outline-none transition-all">
+          </div>
+
+          <!-- Type -->
+          <div>
+            <label class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">图片类型</label>
+            <select x-model="modalType"
+              class="w-full mt-1 h-10 px-3 text-sm border border-gray-200/80 rounded-xl bg-white/80 focus:bg-white focus:border-blue-400 outline-none transition-all">
+              <option value="">不指定</option>
+              <option value="meme">meme 梗图</option>
+              <option value="emoji">emoji 表情包</option>
+              <option value="screenshot">screenshot 截图</option>
+              <option value="long_screenshot">long_screenshot 长截图</option>
+              <option value="fanart">fanart 同人图</option>
+              <option value="official_art">official_art 官方美术</option>
+              <option value="ai_generated">ai_generated AI 生成</option>
+              <option value="photo">photo 照片</option>
+              <option value="scan">scan 扫描件</option>
+              <option value="text_screenshot">text_screenshot 文字截图</option>
+            </select>
+          </div>
+
+          <!-- Tags -->
+          <div>
+            <label class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">标签</label>
+            <div class="flex flex-wrap gap-1.5 mt-1.5">
+              <template x-for="tag in modalTags" :key="tag">
+                <button @click="toggleModalTag(tag)"
+                  class="tag-chip" :class="modalSelectedTags.includes(tag) ? 'selected bg-blue-500 text-white' : ''"
+                  x-text="tag">
+                </button>
+              </template>
+            </div>
+            <div class="flex gap-2 mt-2">
+              <input type="text" x-model="newTag" @keydown.enter.prevent="addModalTag"
+                placeholder="添加标签…"
+                class="flex-1 h-8 px-3 text-xs border border-gray-200/60 rounded-xl bg-white/70 focus:bg-white focus:border-blue-400 outline-none transition-all">
+              <button @click="addModalTag" class="h-8 px-3 rounded-xl glass-gray text-xs flex items-center gap-1">
+                <i class="fa-solid fa-plus"></i> 添加
+              </button>
+            </div>
+          </div>
+
+          <!-- Preview -->
+          <template x-if="modalImgSrc">
+            <div class="rounded-xl overflow-hidden bg-gray-100/50 border border-white/30">
+              <img :src="modalImgSrc" alt="" class="w-full h-40 object-contain">
+            </div>
+          </template>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-end gap-3 p-5 pt-3 border-t border-gray-100/80">
+          <button @click="closeModal()" class="h-9 px-5 rounded-xl glass-gray text-sm font-medium">
+            取消
+          </button>
+          <button @click="submitConfirm()" class="h-9 px-6 rounded-xl glass-green text-sm font-medium flex items-center gap-1.5">
+            <i class="fa-solid fa-check"></i> 确认归档
+          </button>
+        </div>
+      </div>
+    </div>
+  </template>
 </div>
 
 <script>
@@ -324,11 +443,27 @@ function pendingApp() {
     order: '{{ order }}',
     searchText: '{{ request.query_params.get("q","") }}',
     filterOpen: false,
+    showHelp: false,
     selectionMode: false,
     selected: [],
     batchCategory: '',
     imageIds: {{ images | map(attribute='id') | list | tojson }},
     q: '{{ request.query_params.get("q","") }}',
+
+    // ── Modal state ──
+    modalOpen: false,
+    modalId: null,
+    modalData: {},
+    modalCategory: '',
+    modalWork: '',
+    modalType: '',
+    modalTags: [],
+    modalSelectedTags: [],
+    modalImgSrc: '',
+    newTag: '',
+
+    // ── Focus tracking for keyboard nav ──
+    focusedIndex: -1,
 
     views: [
       { id: 'xl-icons', label: '超大图标', icon: 'fa-images' },
@@ -361,13 +496,10 @@ function pendingApp() {
       const savedSel = sessionStorage.getItem('pendingSelectionMode');
       if (savedSel === 'true') this.selectionMode = true;
 
-      // Restore last-used view from localStorage when no explicit view param
       const url = new URL(window.location);
       if (!url.searchParams.has('view')) {
         const savedView = localStorage.getItem('pica_view');
-        if (savedView && this.views.some(v => v.id === savedView)) {
-          this.view = savedView;
-        }
+        if (savedView && this.views.some(v => v.id === savedView)) this.view = savedView;
       }
       if (!url.searchParams.has('sort')) {
         const savedSort = localStorage.getItem('pica_sort');
@@ -377,6 +509,134 @@ function pendingApp() {
         const savedOrder = localStorage.getItem('pica_order');
         if (savedOrder) this.order = savedOrder;
       }
+
+      // Listen for confirm events from item partials
+      window.addEventListener('confirm-img', (e) => { this.openModal(e.detail.id); });
+
+      // Keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        if (this.modalOpen) return;
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+
+        switch (e.key.toLowerCase()) {
+          case 'j': e.preventDefault(); this.navNext(); break;
+          case 'k': e.preventDefault(); this.navPrev(); break;
+          case 'a': e.preventDefault(); this.toggleFocused(); break;
+          case 'c': e.preventDefault(); this.confirmFocused(); break;
+          case 'x': e.preventDefault(); this.rejectFocused(); break;
+          case 'r': e.preventDefault(); this.retryFocused(); break;
+          case 'e': e.preventDefault(); this.editFocused(); break;
+          case '/': e.preventDefault(); document.querySelector('.apple-search')?.focus(); break;
+          case '?': e.preventDefault(); this.showHelp = !this.showHelp; break;
+        }
+      });
+    },
+
+    // ── Confirm Modal ──
+    async openModal(imgId) {
+      this.modalId = imgId;
+      this.modalOpen = true;
+      this.newTag = '';
+      try {
+        const r = await fetch(`/pending/${imgId}/data`);
+        if (!r.ok) return;
+        const data = await r.json();
+        this.modalData = data;
+        this.modalCategory = data.suggested_category?.[0] || '';
+        this.modalWork = data.work_name || '';
+        this.modalType = data.image_type || '';
+        this.modalTags = data.all_tags || [];
+        this.modalSelectedTags = [...(data.suggested_tags || [])];
+        this.modalImgSrc = `/thumbnails/${data.md5_hash}_256.jpg`;
+      } catch(e) {
+        console.error('Modal fetch error:', e);
+      }
+    },
+    closeModal() {
+      this.modalOpen = false;
+      this.modalId = null;
+      this.modalData = {};
+      this.newTag = '';
+    },
+    setModalField(field, value) {
+      if (field === 'category') this.modalCategory = value;
+      else if (field === 'work') this.modalWork = value;
+      else if (field === 'type') this.modalType = value;
+    },
+    toggleModalTag(tag) {
+      const idx = this.modalSelectedTags.indexOf(tag);
+      if (idx >= 0) this.modalSelectedTags.splice(idx, 1);
+      else this.modalSelectedTags.push(tag);
+    },
+    addModalTag() {
+      const t = this.newTag.trim();
+      if (!t) return;
+      if (!this.modalTags.includes(t)) this.modalTags.push(t);
+      if (!this.modalSelectedTags.includes(t)) this.modalSelectedTags.push(t);
+      this.newTag = '';
+    },
+    async submitConfirm() {
+      if (!this.modalId) return;
+      const formData = new FormData();
+      formData.append('category', this.modalCategory);
+      formData.append('tags', this.modalSelectedTags.join(','));
+      formData.append('work', this.modalWork);
+      formData.append('image_type', this.modalType);
+      const r = await fetch(`/pending/${this.modalId}/confirm`, { method: 'POST', body: formData });
+      this.closeModal();
+      if (r.redirected) window.location.href = r.url;
+      else window.location.reload();
+    },
+
+    // ── Keyboard navigation ──
+    get focusedId() {
+      if (this.focusedIndex < 0 || this.focusedIndex >= this.imageIds.length) return null;
+      return this.imageIds[this.focusedIndex];
+    },
+    navNext() {
+      if (this.imageIds.length === 0) return;
+      this.focusedIndex = Math.min(this.focusedIndex + 1, this.imageIds.length - 1);
+      this.scrollToFocused();
+    },
+    navPrev() {
+      if (this.imageIds.length === 0) return;
+      this.focusedIndex = Math.max(this.focusedIndex - 1, 0);
+      this.scrollToFocused();
+    },
+    scrollToFocused() {
+      const id = this.focusedId;
+      if (!id) return;
+      const el = document.querySelector(`[data-img-id="${id}"]`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    },
+    toggleFocused() {
+      const id = this.focusedId;
+      if (!id || this.focusedIndex < 0) return;
+      this.toggleSelect(id);
+    },
+    confirmFocused() {
+      const id = this.focusedId;
+      if (!id || this.focusedIndex < 0) return;
+      this.openModal(id);
+    },
+    rejectFocused() {
+      const id = this.focusedId;
+      if (!id || this.focusedIndex < 0) return;
+      const formData = new FormData();
+      formData.append('redirect', window.location.pathname + window.location.search);
+      fetch(`/pending/${id}/reject`, { method: 'POST', body: formData }).then(r => { if (r.redirected) window.location.href = r.url; });
+    },
+    retryFocused() {
+      const id = this.focusedId;
+      if (!id || this.focusedIndex < 0) return;
+      const formData = new FormData();
+      formData.append('redirect', window.location.pathname + window.location.search);
+      fetch(`/pending/${id}/retry-ai`, { method: 'POST', body: formData }).then(r => { if (r.redirected) window.location.href = r.url; });
+    },
+    editFocused() {
+      const id = this.focusedId;
+      if (!id || this.focusedIndex < 0) return;
+      this.openModal(id);
     },
 
     switchView(v) {
@@ -396,23 +656,18 @@ function pendingApp() {
       localStorage.setItem('pica_order', this.order);
       this.applyParams();
     },
-
     applyParams() {
       const url = new URL(window.location);
       url.searchParams.set('sort', this.sort); url.searchParams.set('order', this.order);
       if (this.q) url.searchParams.set('q', this.q); else url.searchParams.delete('q');
       window.location.href = url;
     },
-
     doSearch() { this.q = this.searchText; this.applyParams(); },
-
     toggleAll(e) { if (e.target.checked) this.selected = [...this.imageIds]; else this.selected = []; },
-
     toggleSelect(imgId) {
       const idx = this.selected.indexOf(imgId);
       if (idx >= 0) this.selected.splice(idx, 1); else this.selected.push(imgId);
     },
-
     submitBatch(action) {
       if (this.selected.length === 0) return;
       const formData = new FormData();

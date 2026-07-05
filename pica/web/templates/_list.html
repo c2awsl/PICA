@@ -1,4 +1,4 @@
-<div class="ani-in flex items-center gap-3 px-3 py-2 border-b border-white/30 hover:bg-white/40 transition-all duration-300 group">
+<div class="ani-in flex items-center gap-3 px-3 py-2 border-b border-white/30 hover:bg-white/40 transition-all duration-300 group" data-img-id="{{ img.id }}">
   <input type="checkbox" x-show="selectionMode" :checked="selected.includes({{ img.id }})" @change="toggleSelect({{ img.id }})" class="w-3.5 h-3.5 rounded border-gray-300 text-blue-500 cursor-pointer flex-shrink-0">
   <a href="/preview/{{ img.id }}" target="_blank" class="flex-shrink-0">
     <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="" loading="lazy" class="w-8 h-8 object-cover rounded-lg bg-gray-100/50 shadow-sm">
@@ -6,14 +6,12 @@
   <div class="flex-1 min-w-0 flex items-center gap-3">
     <div class="flex-1 min-w-0 flex items-center gap-1.5">
       <span class="text-sm font-medium text-gray-700 truncate">{{ img.filename }}</span>
-      {% if img.ai_status == 'pending' %}
-      <span class="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-gray-400" title="等待识别"></span>
+      {% if img.ai_status == 'failed' %}
+      <span class="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-red-500" title="识别失败"></span>
       {% elif img.ai_status == 'processing' %}
       <span class="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" title="识别中"></span>
-      {% elif img.ai_status == 'done' %}
-      <span class="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-green-500" title="已识别"></span>
-      {% elif img.ai_status == 'failed' %}
-      <span class="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-red-500" title="识别失败"></span>
+      {% elif img.ai_status == 'pending' %}
+      <span class="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-gray-400" title="等待识别"></span>
       {% endif %}
     </div>
     {% if img.work_name or img.image_type %}
@@ -24,11 +22,11 @@
     {% endif %}
     <div class="text-[11px] text-gray-400 flex-shrink-0 hidden md:block font-medium">{{ (img.file_size/1024)|round(1) }} KB</div>
   </div>
-  <div class="flex gap-1.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-300">
+  <div class="flex gap-1.5 flex-shrink-0">
     {% if img.ai_status == 'failed' %}
-    <form action="/pending/{{ img.id }}/retry-ai" method="post"><button class="glass-btn glass-gray w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="重试AI识别"><i class="fa-solid fa-rotate"></i></button></form>
+    <form action="/pending/{{ img.id }}/retry-ai" method="post"><button type="submit" class="glass-btn glass-gray w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="重试AI"><i class="fa-solid fa-rotate"></i></button></form>
     {% endif %}
-    <form action="/pending/{{ img.id }}/confirm" method="post"><button class="glass-btn glass-green w-7 h-7 rounded-lg flex items-center justify-center text-[10px]">✓</button></form>
-    <form action="/pending/{{ img.id }}/reject" method="post"><button class="glass-btn glass-red w-7 h-7 rounded-lg flex items-center justify-center text-[10px]">✕</button></form>
+    <button @click="$dispatch('confirm-img', { id: {{ img.id }} })" class="glass-btn glass-green w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="归档"><i class="fa-solid fa-check"></i></button>
+    <form action="/pending/{{ img.id }}/reject" method="post"><button type="submit" class="glass-btn glass-red w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="驳回"><i class="fa-solid fa-xmark"></i></button></form>
   </div>
 </div>

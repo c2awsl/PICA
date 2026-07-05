@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}分组管理{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config = { corePlugins: { preflight: false } }</script>
+<style>
+html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f5f5f7; }
+.glass-card { background: rgba(255,255,255,0.72); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 2px 20px rgba(0,0,0,0.04); border-radius: 1rem; transition: all 0.2s; }
+.glass-btn { cursor: pointer; border: none; outline: none; transition: all 0.35s; backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.25); }
+.glass-btn:hover { transform: scale(1.05); }
+.glass-gray { background: rgba(0,0,0,0.04); color: #555; }
+.glass-gray:hover { background: rgba(0,0,0,0.08); color: #333; }
+.glass-red { background: rgba(255,69,58,0.2); color: #9b1c1c; }
+.glass-red:hover { background: rgba(255,69,58,0.92); color: #fff; }
+.glass-blue { background: rgba(0,122,255,0.2); color: #003d7a; }
+.glass-blue:hover { background: rgba(0,122,255,0.92); color: #fff; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-5 min-h-screen" style="background:#f5f5f7;">
+  <h1 class="text-lg font-semibold text-gray-800 mb-5 flex items-center gap-2">
+    <i class="fa-solid fa-layer-group text-purple-500"></i> 分组管理
+    <span class="text-xs font-normal text-gray-400 ml-1">({{ group_data|length }} 组)</span>
+  </h1>
+
+  {% if not group_data %}
+  <div class="flex flex-col items-center justify-center py-24 text-gray-400">
+    <i class="fa-regular fa-object-group text-6xl mb-5 opacity-40"></i>
+    <p class="text-base font-medium text-gray-500">暂无分组</p>
+    <p class="text-sm mt-1.5 text-gray-400">扫描图片后会自动按近似度分组</p>
+  </div>
+  {% else %}
+  <div class="grid gap-4" style="grid-template-columns:repeat(auto-fill,minmax(320px,1fr))">
+    {% for gd in group_data %}
+    <div class="glass-card p-4">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <span class="text-sm font-semibold text-gray-800">{{ gd.group.name or '分组 #' + gd.group.id|string }}</span>
+          <span class="text-xs text-gray-400 ml-2">{{ gd.total }} 张</span>
+        </div>
+        <div class="flex gap-1.5">
+          <form action="/groups/{{ gd.group.id }}/rename" method="post" class="inline-flex items-center gap-1">
+            <input type="text" name="name" placeholder="重命名" class="w-20 h-7 px-2 text-xs border border-gray-200/60 rounded-lg bg-white/60 focus:bg-white focus:border-blue-400 outline-none hidden group-focus-within:inline">
+            <button type="submit" class="glass-btn glass-gray w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="重命名"><i class="fa-solid fa-pen"></i></button>
+          </form>
+          <form action="/groups/{{ gd.group.id }}/ungroup" method="post" onsubmit="return confirm('确认拆分此分组？图片将保留但不再分组。')">
+            <button type="submit" class="glass-btn glass-red w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="拆分"><i class="fa-solid fa-link-slash"></i></button>
+          </form>
+        </div>
+      </div>
+
+      {% if gd.statuses %}
+      <div class="flex gap-2 mb-3 text-[10px] text-gray-500">
+        {% for status, cnt in gd.statuses.items() %}
+        <span class="px-2 py-0.5 rounded-full bg-white/50 border border-white/30">
+          {{ {'pending':'待确认','confirmed':'已归档','rejected':'已驳回'}.get(status, status) }}: {{ cnt }}
+        </span>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="grid grid-cols-5 gap-1.5">
+        {% for img in gd.images %}
+        <a href="/{% if img.status.value == 'confirmed' %}archive{% else %}pending{% endif %}/{{ img.id }}">
+          <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="" loading="lazy"
+            class="w-full aspect-square object-cover rounded-lg bg-gray-100/50 border border-white/30 hover:border-blue-400 transition-all">
+        </a>
+        {% endfor %}
+      </div>
+
+      {% if gd.total > 5 %}
+      <a href="/groups/{{ gd.group.id }}" class="block text-center text-xs text-blue-500 hover:text-blue-700 mt-2 font-medium">
+        查看全部 {{ gd.total }} 张 →
+      </a>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

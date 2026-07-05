@@ -1,44 +1,148 @@
 {% extends "base.html" %}
 {% block title %}统计{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config = { corePlugins: { preflight: false } }</script>
+<style>
+html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f5f5f7; }
+.glass-card { background: rgba(255,255,255,0.72); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 2px 20px rgba(0,0,0,0.04); border-radius: 1rem; }
+.stat-value { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
+.stat-label { font-size: 12px; font-weight: 500; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.04em; }
+.bar-bg { background: rgba(0,0,0,0.04); border-radius: 999px; height: 8px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 999px; transition: width 0.6s cubic-bezier(0.25,0.46,0.45,0.94); }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="page-pad">
-<div class="page-title">统计面板</div>
+<div class="p-5" style="background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <h1 class="text-lg font-semibold text-gray-800 mb-5">统计总览</h1>
 
-<div class="stats-grid">
-  <div class="stat-card">
-    <div class="stat-value" style="color:#007aff;">{{ total }}</div>
-    <div class="stat-label">全部图片</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-value" style="color:#ff9500;">{{ pending_count }}</div>
-    <div class="stat-label">待确认</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-value" style="color:#34c759;">{{ confirmed_count }}</div>
-    <div class="stat-label">已归档</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-value" style="color:#86868b;">{{ rejected_count }}</div>
-    <div class="stat-label">已驳回</div>
-  </div>
-</div>
-
-<div class="apple-card">
-  <div class="apple-card-header">分类分布</div>
-  {% if category_counts %}
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;">
-    {% for cat, count in category_counts.items() %}
-    <div style="background:#f5f5f7;border-radius:10px;padding:16px;text-align:center;">
-      <div style="font-size:22px;font-weight:700;color:#1d1d1f;">{{ count }}</div>
-      <div style="font-size:13px;color:#86868b;margin-top:4px;">{{ cat }}</div>
+  <!-- ═══ Stat Cards ═══ -->
+  <div class="grid gap-4 mb-8" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">
+    <div class="glass-card p-4 text-center">
+      <div class="stat-value text-gray-800">{{ total }}</div>
+      <div class="stat-label">总计</div>
     </div>
-    {% endfor %}
+    <div class="glass-card p-4 text-center">
+      <div class="stat-value text-orange-500">{{ pending_count }}</div>
+      <div class="stat-label">待处理</div>
+    </div>
+    <div class="glass-card p-4 text-center">
+      <div class="stat-value text-green-600">{{ confirmed_count }}</div>
+      <div class="stat-label">已归档</div>
+    </div>
+    <div class="glass-card p-4 text-center">
+      <div class="stat-value text-red-500">{{ rejected_count }}</div>
+      <div class="stat-label">已驳回</div>
+    </div>
+    <div class="glass-card p-4 text-center">
+      <div class="stat-value text-blue-500">{{ recent_scanned }}</div>
+      <div class="stat-label">近 7 日入库</div>
+    </div>
+    <div class="glass-card p-4 text-center">
+      <div class="stat-value text-indigo-500">{{ recent_confirmed }}</div>
+      <div class="stat-label">近 7 日归档</div>
+    </div>
   </div>
-  {% else %}
-  <div class="empty-state" style="padding:24px;">
-    <p style="color:#aeaeb2;">暂无统计数据</p>
+
+  <!-- ═══ Two columns ═══ -->
+  <div class="flex gap-6 flex-col lg:flex-row">
+
+    <!-- Left: AI Stats -->
+    <div class="flex-1 space-y-4">
+      <div class="glass-card p-5">
+        <h2 class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+          <i class="fa-solid fa-microchip text-blue-500"></i> AI 识别
+        </h2>
+        <div class="space-y-3 text-sm">
+          <div>
+            <div class="flex justify-between text-xs text-gray-500 mb-1">
+              <span>已完成</span>
+              <span>{{ ai_done }}</span>
+            </div>
+            <div class="bar-bg"><div class="bar-fill bg-green-500" style="width:{{ (ai_done/(ai_done+ai_failed+ai_pending+ai_processing)*100) if (ai_done+ai_failed+ai_pending+ai_processing) > 0 else 0 }}%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs text-gray-500 mb-1">
+              <span>失败</span>
+              <span>{{ ai_failed }}</span>
+            </div>
+            <div class="bar-bg"><div class="bar-fill bg-red-500" style="width:{{ (ai_failed/(ai_done+ai_failed+ai_pending+ai_processing)*100) if (ai_done+ai_failed+ai_pending+ai_processing) > 0 else 0 }}%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs text-gray-500 mb-1">
+              <span>等待识别</span>
+              <span>{{ ai_pending }}</span>
+            </div>
+            <div class="bar-bg"><div class="bar-fill bg-gray-400" style="width:{{ (ai_pending/(ai_done+ai_failed+ai_pending+ai_processing)*100) if (ai_done+ai_failed+ai_pending+ai_processing) > 0 else 0 }}%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs text-gray-500 mb-1">
+              <span>识别中</span>
+              <span>{{ ai_processing }}</span>
+            </div>
+            <div class="bar-bg"><div class="bar-fill bg-blue-500" style="width:{{ (ai_processing/(ai_done+ai_failed+ai_pending+ai_processing)*100) if (ai_done+ai_failed+ai_pending+ai_processing) > 0 else 0 }}%"></div></div>
+          </div>
+          {% if ai_models %}
+          <div class="text-xs text-gray-500 pt-2 border-t border-gray-100">
+            <span>模型: </span>
+            {% for m in ai_models %}
+            <span class="font-mono text-gray-700">{{ m }}</span>{% if not loop.last %}, {% endif %}
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Work counts -->
+      {% if work_counts %}
+      <div class="glass-card p-5">
+        <h2 class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+          <i class="fa-solid fa-bookmark text-purple-500"></i> 热门作品 Top 10
+        </h2>
+        <div class="space-y-2">
+          {% for work, cnt in work_counts.items() %}
+          <div>
+            <div class="flex justify-between text-xs text-gray-600 mb-0.5">
+              <span class="truncate mr-2">{{ work }}</span>
+              <span class="font-medium">{{ cnt }}</span>
+            </div>
+            <div class="bar-bg"><div class="bar-fill bg-purple-500" style="width:{{ (cnt / work_counts.values()|max * 100) }}%"></div></div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Right: Category Distribution -->
+    <div class="w-full lg:w-80">
+      <div class="glass-card p-5">
+        <h2 class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+          <i class="fa-solid fa-chart-pie text-orange-500"></i> 分类分布
+        </h2>
+        <div class="space-y-2.5">
+          {% for cat, count in category_counts.items() %}
+          {% if count > 0 %}
+          <div>
+            <div class="flex justify-between text-xs text-gray-600 mb-0.5">
+              <span>{{ cat }}</span>
+              <span class="font-medium">{{ count }}</span>
+            </div>
+            <div class="bar-bg">
+              <div class="bar-fill bg-blue-500"
+                style="width:{{ (count / category_counts.values()|max * 100) if category_counts.values()|max > 0 else 0 }}%">
+              </div>
+            </div>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+        <div class="text-xs text-gray-400 mt-3 pt-2 border-t border-gray-100 text-center">
+          {{ confirmed_count }} 张归档图片 · {{ category_counts.values()|select('>',0)|list|length }} 个分类
+        </div>
+      </div>
+    </div>
   </div>
-  {% endif %}
-</div>
 </div>
 {% endblock %}

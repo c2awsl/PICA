@@ -277,6 +277,12 @@
             <a href="/stats" class="{{ 'active' if request.url.path == '/stats' else '' }}">
                 <i class="fa-regular fa-chart-bar mr-1.5"></i>统计
             </a>
+            <a href="/tags" class="{{ 'active' if request.url.path == '/tags' else '' }}">
+                <i class="fa-solid fa-tags mr-1.5"></i>标签
+            </a>
+            <a href="/groups" class="{{ 'active' if request.url.path.startswith('/groups') else '' }}">
+                <i class="fa-solid fa-layer-group mr-1.5"></i>分组
+            </a>
         </nav>
         <div class="titlebar-right">
             <a href="/settings" class="icon-btn {{ 'active' if request.url.path == '/settings' else '' }}" title="设置">

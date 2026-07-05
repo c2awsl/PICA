@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}标签管理{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config = { corePlugins: { preflight: false } }</script>
+<style>
+html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f5f5f7; }
+.glass-card { background: rgba(255,255,255,0.72); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 2px 20px rgba(0,0,0,0.04); border-radius: 1rem; transition: all 0.2s; }
+.glass-btn { cursor: pointer; border: none; outline: none; transition: all 0.35s; backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.25); }
+.glass-btn:hover { transform: scale(1.05); }
+.glass-gray { background: rgba(0,0,0,0.04); color: #555; }
+.glass-gray:hover { background: rgba(0,0,0,0.08); color: #333; }
+.glass-red { background: rgba(255,69,58,0.2); color: #9b1c1c; }
+.glass-red:hover { background: rgba(255,69,58,0.92); color: #fff; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="{ search: '', mergeSource: '', mergeTarget: '', renameOld: '', renameNew: '' }" class="p-5 min-h-screen" style="background:#f5f5f7;">
+
+  <h1 class="text-lg font-semibold text-gray-800 mb-5 flex items-center gap-2">
+    <i class="fa-solid fa-tags text-blue-500"></i> 标签管理
+    <span class="text-xs font-normal text-gray-400 ml-1">({{ tags|length }} 个标签)</span>
+  </h1>
+
+  <!-- Search -->
+  <div class="relative max-w-md mb-6">
+    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"></i>
+    <input type="search" x-model="search" placeholder="搜索标签…"
+      class="w-full h-9 pl-9 pr-3 text-sm bg-white/70 border border-gray-200/60 rounded-xl focus:bg-white focus:border-blue-400 outline-none transition-all">
+  </div>
+
+  <!-- Tag Cloud -->
+  <div class="flex flex-wrap gap-2 mb-8">
+    {% for tag, count in tags.items() %}
+    <div x-show="!search || '{{ tag|e }}'.includes(search)" class="glass-card px-3 py-2 flex items-center gap-2 text-sm group">
+      <span class="text-gray-700 font-medium">{{ tag }}</span>
+      <span class="text-[10px] text-gray-400 font-mono">{{ count }}</span>
+      <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+        <button @click="renameOld='{{ tag|e }}'; renameNew='{{ tag|e }}'" class="text-gray-400 hover:text-blue-500 text-xs"><i class="fa-solid fa-pen"></i></button>
+        <button @click="mergeSource='{{ tag|e }}'" class="text-gray-400 hover:text-purple-500 text-xs"><i class="fa-solid fa-merge"></i></button>
+        <form action="/tags/delete" method="post" class="inline" onsubmit="return confirm('确认删除标签「{{ tag|e }}」？将从所有图片中移除。')">
+          <input type="hidden" name="tag" value="{{ tag }}">
+          <button type="submit" class="text-gray-400 hover:text-red-500 text-xs"><i class="fa-solid fa-trash-can"></i></button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Merge -->
+  <div class="glass-card p-5 mb-4 max-w-lg" x-show="mergeSource">
+    <h3 class="text-sm font-semibold text-gray-700 mb-3">合并标签</h3>
+    <form action="/tags/merge" method="post" class="flex items-center gap-2">
+      <span class="text-sm text-gray-500">将</span>
+      <input type="text" name="source" x-model="mergeSource" class="h-8 px-3 text-sm border border-gray-200/60 rounded-xl bg-white/70 w-28 text-center font-medium text-blue-600" readonly>
+      <span class="text-sm text-gray-500">合并到</span>
+      <input type="text" name="target" x-model="mergeTarget" placeholder="目标标签" class="h-8 px-3 text-sm border border-gray-200/60 rounded-xl bg-white/70 focus:bg-white focus:border-blue-400 outline-none w-28">
+      <button type="submit" class="h-8 px-4 rounded-xl glass-gray text-xs font-medium">合并</button>
+      <button type="button" @click="mergeSource=''; mergeTarget=''" class="h-8 px-3 rounded-xl text-xs text-gray-400 hover:text-gray-600">取消</button>
+    </form>
+  </div>
+
+  <!-- Rename -->
+  <div class="glass-card p-5 max-w-lg" x-show="renameOld">
+    <h3 class="text-sm font-semibold text-gray-700 mb-3">重命名标签</h3>
+    <form action="/tags/rename" method="post" class="flex items-center gap-2">
+      <span class="text-sm text-gray-500">将</span>
+      <input type="text" name="old_name" x-model="renameOld" class="h-8 px-3 text-sm border border-gray-200/60 rounded-xl bg-white/70 w-28 text-center font-medium text-blue-600" readonly>
+      <span class="text-sm text-gray-500">改为</span>
+      <input type="text" name="new_name" x-model="renameNew" placeholder="新名称" class="h-8 px-3 text-sm border border-gray-200/60 rounded-xl bg-white/70 focus:bg-white focus:border-blue-400 outline-none w-28">
+      <button type="submit" class="h-8 px-4 rounded-xl glass-gray text-xs font-medium">重命名</button>
+      <button type="button" @click="renameOld=''; renameNew=''" class="h-8 px-3 rounded-xl text-xs text-gray-400 hover:text-gray-600">取消</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

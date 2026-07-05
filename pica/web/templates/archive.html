@@ -1,79 +1,200 @@
 {% extends "base.html" %}
-{% block title %}归档浏览{% endblock %}
+{% block title %}归档{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = { corePlugins: { preflight: false } }
+</script>
+<style>
+html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f5f5f7; }
+.glass-card {
+  background: rgba(255,255,255,0.72); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 2px 20px rgba(0,0,0,0.04);
+  transition: all 0.3s;
+}
+.glass-card:hover { box-shadow: 0 8px 40px rgba(0,0,0,0.08); transform: translateY(-2px); }
+.apple-search {
+  width: 100%; height: 36px; padding: 0 14px 0 36px; font-size: 13px;
+  background: rgba(120,120,128,0.08); border: 1px solid rgba(120,120,128,0.12);
+  border-radius: 10px; outline: none; transition: all 0.3s;
+}
+.apple-search:focus { background: rgba(255,255,255,0.95); border-color: rgba(0,122,255,0.4); box-shadow: 0 0 0 3px rgba(0,122,255,0.15); }
+.glass-btn {
+  cursor: pointer; border: none; outline: none; transition: all 0.35s cubic-bezier(0.25,0.46,0.45,0.94);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.25);
+}
+.glass-btn:hover { transform: scale(1.08); box-shadow: 0 8px 40px rgba(0,0,0,0.1); }
+.glass-blue { background: rgba(0,122,255,0.2); color: #003d7a; }
+.glass-blue:hover { background: rgba(0,122,255,0.92); color: #fff; }
+.glass-gray { background: rgba(0,0,0,0.04); color: #555; }
+.glass-gray:hover { background: rgba(0,0,0,0.08); color: #333; }
+.glass-green { background: rgba(52,199,89,0.2); color: #1a6a32; }
+.glass-green:hover { background: rgba(52,199,89,0.92); color: #fff; }
+.glass-red { background: rgba(255,69,58,0.2); color: #9b1c1c; }
+.glass-red:hover { background: rgba(255,69,58,0.92); color: #fff; }
+.tag-chip {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:1px 8px; border-radius:999px; font-size:10px;
+  background:rgba(0,122,255,0.08); color:#007aff; border:1px solid rgba(0,122,255,0.15);
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="page-pad">
-<div class="page-title">
-  归档浏览
-  <span class="subtitle">共 {{ total }} 张</span>
-</div>
+<div x-data="archiveApp()" class="min-h-screen" style="background:#f5f5f7;">
 
-<div class="apple-card" style="padding:16px;">
-  <form method="get" action="/archive" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-    <select name="category" class="apple-select" style="min-width:140px;">
-      <option value="">全部分类</option>
-      {% for cat in categories %}
-      <option value="{{ cat }}" {{ 'selected' if current_category == cat else '' }}>{{ cat }}</option>
-      {% endfor %}
-    </select>
-    <input type="text" name="tag" placeholder="搜索标签…" value="{{ current_tag }}" class="apple-input" style="width:200px;">
-    <button class="apple-btn" type="submit">筛选</button>
-    {% if current_category or current_tag %}
-    <a href="/archive" class="apple-btn-secondary" style="display:inline-flex;align-items:center;height:32px;padding:0 16px;border-radius:8px;font-size:12px;font-weight:500;text-decoration:none;">清除</a>
-    {% endif %}
-  </form>
-</div>
+  <!-- ═══ Toolbar ═══ -->
+  <div class="sticky top-0 z-30 bg-white/80 backdrop-blur-2xl border-b border-white/30 px-5 py-3">
+    <form method="get" action="/archive" class="flex items-center gap-4">
+      <div class="relative flex-1 max-w-md">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"></i>
+        <input type="search" name="q" value="{{ q }}" placeholder="搜索文件名、标签、分类、作品…"
+          class="apple-search pl-9">
+      </div>
+      <select name="category" class="h-9 px-3 text-sm border border-gray-200/60 rounded-xl bg-white/70 focus:bg-white focus:border-blue-400 outline-none">
+        <option value="">全部分类</option>
+        {% for cat, cnt in category_counts.items() %}
+        <option value="{{ cat }}" {{ 'selected' if current_category == cat else '' }}>{{ cat }} ({{ cnt }})</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="h-9 px-4 rounded-xl glass-blue text-sm font-medium">
+        <i class="fa-solid fa-search mr-1"></i>搜索
+      </button>
+      {% if q or current_category or current_tag %}
+      <a href="/archive" class="h-9 px-4 rounded-xl glass-gray text-sm font-medium flex items-center">
+        <i class="fa-solid fa-xmark mr-1"></i>清除
+      </a>
+      {% endif %}
+      <button type="button" @click="selectionMode = !selectionMode" class="h-9 px-4 rounded-xl text-sm font-medium"
+        :class="selectionMode ? 'glass-blue' : 'glass-gray'">
+        <i class="fa-regular fa-square-check mr-1"></i>
+        <span x-text="selectionMode ? '取消选择' : '选择'"></span>
+      </button>
+    </form>
 
-{% if images %}
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;">
-  {% for img in images %}
-  <a href="/archive/{{ img.id }}" style="text-decoration:none;color:inherit;">
-    <div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 1px 2px rgba(0,0,0,0.02);transition:all 0.25s;hover:box-shadow:0 4px 16px rgba(0,0,0,0.08);"
-         onmouseenter="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.08)'"
-         onmouseleave="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.04),0 1px 2px rgba(0,0,0,0.02)'">
-      <div style="width:100%;height:180px;background:#f5f5f7;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;">
-        <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="{{ img.filename }}" loading="lazy" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;" onerror="this.style.display='none'" onload="this.style.display=''">
-        <i class="fa-regular fa-image" style="font-size:32px;color:#c7c7cc;pointer-events:none;"></i>
+    <!-- Batch edit bar -->
+    <template x-if="selectionMode && selected.length > 0">
+      <div class="mt-3 flex items-center gap-3 text-sm flex-wrap">
+        <span class="text-blue-600 font-medium">已选 <span x-text="selected.length"></span> 项</span>
+        <input type="text" x-model="batchTag" placeholder="添加标签…" class="h-8 px-3 text-xs border border-gray-200/60 rounded-xl bg-white/70 focus:bg-white focus:border-blue-400 outline-none w-28">
+        <button @click="batchAction('add_tag')" class="h-8 px-3 rounded-xl glass-green text-xs font-medium">添加标签</button>
+        <button @click="batchAction('remove_tag')" class="h-8 px-3 rounded-xl glass-red text-xs font-medium">移除标签</button>
+        <input type="text" x-model="batchCategory" placeholder="分类…" class="h-8 px-3 text-xs border border-gray-200/60 rounded-xl bg-white/70 focus:bg-white focus:border-blue-400 outline-none w-24">
+        <button @click="batchAction('set_category')" class="h-8 px-3 rounded-xl glass-gray text-xs font-medium">设置分类</button>
+        <input type="text" x-model="batchWork" placeholder="作品…" class="h-8 px-3 text-xs border border-gray-200/60 rounded-xl bg-white/70 focus:bg-white focus:border-blue-400 outline-none w-24">
+        <button @click="batchAction('set_work')" class="h-8 px-3 rounded-xl glass-gray text-xs font-medium">设置作品</button>
       </div>
-      <div style="padding:12px;">
-        {% if img.confirmed_category_list %}
-        <div style="margin-bottom:6px;">
-          {% for cat in img.confirmed_category_list %}
-          <span class="apple-badge apple-badge-green" style="margin-right:4px;">{{ cat }}</span>
-          {% endfor %}
-        </div>
-        {% endif %}
-        {% if img.confirmed_tags_list %}
-        <div style="font-size:12px;color:#aeaeb2;margin-bottom:4px;line-height:1.4;">
-          {% for tag in img.confirmed_tags_list[:5] %}
-          #{{ tag }}{% if not loop.last %} {% endif %}
-          {% endfor %}
-        </div>
-        {% endif %}
-        <div style="font-size:11px;color:#aeaeb2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ img.filename }}</div>
-      </div>
+    </template>
+  </div>
+
+  <!-- ═══ Grid ═══ -->
+  <div class="p-5">
+    {% if not images %}
+    <div class="flex flex-col items-center justify-center py-24 text-gray-400">
+      <i class="fa-regular fa-folder-open text-6xl mb-5 opacity-40"></i>
+      <p class="text-base font-medium text-gray-500">暂无归档</p>
+      <p class="text-sm mt-1.5 text-gray-400">在待办页确认图片后会自动归档到这里</p>
     </div>
-  </a>
-  {% endfor %}
+    {% else %}
+    <div class="grid gap-4" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">
+      {% for img in images %}
+      <div class="ani-in glass-card rounded-2xl overflow-hidden group" data-archive-id="{{ img.id }}">
+        <div class="relative">
+          <a href="/archive/{{ img.id }}">
+            <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="{{ img.filename }}" loading="lazy" class="w-full aspect-square object-cover block bg-gray-100/50">
+          </a>
+          <div x-show="selectionMode" class="absolute top-2 left-2 z-10" x-cloak>
+            <input type="checkbox" :checked="selected.includes({{ img.id }})" @change="toggleSelect({{ img.id }})" class="w-3.5 h-3.5 rounded border-white/70 text-blue-500 cursor-pointer shadow">
+          </div>
+        </div>
+        <div class="px-2.5 py-2">
+          <div class="text-[11px] text-gray-500 truncate font-medium">{{ img.filename }}</div>
+          {% if img.confirmed_category_list %}
+          <div class="flex flex-wrap gap-1 mt-1">
+            {% for cat in img.confirmed_category_list[:3] %}
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-50/80 text-blue-600 border border-blue-200/40 font-medium">{{ cat }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+          {% if img.confirmed_tags_list %}
+          <div class="flex flex-wrap gap-1 mt-1.5">
+            {% for tag in img.confirmed_tags_list[:5] %}
+            <span class="tag-chip">#{{ tag }}</span>
+            {% endfor %}
+            {% if img.confirmed_tags_list|length > 5 %}
+            <span class="text-[10px] text-gray-400">+{{ img.confirmed_tags_list|length - 5 }}</span>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- ═══ Pagination ═══ -->
+    {% if total_pages > 1 %}
+    <div class="flex items-center justify-center gap-2 mt-8">
+      {% if page > 1 %}
+      <a href="/archive?page={{ page - 1 }}&per_page={{ per_page }}{% if q %}&q={{ q }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}"
+        class="h-9 px-4 rounded-xl glass-gray text-sm font-medium flex items-center gap-1">
+        <i class="fa-solid fa-chevron-left text-xs"></i> 上一页
+      </a>
+      {% endif %}
+      {% for p in range(1, total_pages + 1) %}
+        {% if p >= page - 2 and p <= page + 2 %}
+        <a href="/archive?page={{ p }}&per_page={{ per_page }}{% if q %}&q={{ q }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}"
+          class="w-9 h-9 rounded-xl text-sm font-medium flex items-center justify-center transition-all duration-300
+          {% if p == page %}bg-black/80 text-white shadow-sm{% else %}glass-gray{% endif %}">
+          {{ p }}
+        </a>
+        {% elif p == 1 or p == total_pages %}
+        <span class="text-gray-300">…</span>
+        {% endif %}
+      {% endfor %}
+      {% if page < total_pages %}
+      <a href="/archive?page={{ page + 1 }}&per_page={{ per_page }}{% if q %}&q={{ q }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}"
+        class="h-9 px-4 rounded-xl glass-gray text-sm font-medium flex items-center gap-1">
+        下一页 <i class="fa-solid fa-chevron-right text-xs"></i>
+      </a>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% endif %}
+  </div>
 </div>
 
-{% if total_pages > 1 %}
-<div class="apple-pagination">
-  {% if page > 1 %}
-  <a href="/archive?page={{ page - 1 }}&category={{ current_category }}&tag={{ current_tag }}"><i class="fa-solid fa-chevron-left"></i></a>
-  {% endif %}
-  <span class="disabled" style="padding:0 12px;font-size:12px;color:#86868b;">{{ page }} / {{ total_pages }}</span>
-  {% if page < total_pages %}
-  <a href="/archive?page={{ page + 1 }}&category={{ current_category }}&tag={{ current_tag }}"><i class="fa-solid fa-chevron-right"></i></a>
-  {% endif %}
-</div>
-{% endif %}
+<script>
+function archiveApp() {
+  return {
+    selectionMode: false,
+    selected: [],
+    batchCategory: '',
+    batchTag: '',
+    batchWork: '',
 
-{% else %}
-<div class="empty-state">
-  <i class="fa-regular fa-folder-open"></i>
-  <p>暂无归档图片</p>
-  <p class="hint">在待确认页面归档图片后会显示在这里</p>
-</div>
-{% endif %}
-</div>
+    toggleSelect(imgId) {
+      const idx = this.selected.indexOf(imgId);
+      if (idx >= 0) this.selected.splice(idx, 1); else this.selected.push(imgId);
+    },
+    async batchAction(action) {
+      if (this.selected.length === 0) return;
+      const formData = new FormData();
+      this.selected.forEach(id => formData.append('image_ids', id));
+      formData.append('action', action);
+      if (action === 'add_tag' || action === 'remove_tag') {
+        if (!this.batchTag) return;
+        formData.append('value', this.batchTag);
+      } else if (action === 'set_category') {
+        if (!this.batchCategory) return;
+        formData.append('value', this.batchCategory);
+      } else if (action === 'set_work') {
+        if (!this.batchWork) return;
+        formData.append('value', this.batchWork);
+      }
+      const r = await fetch('/archive/batch-edit', { method: 'POST', body: formData });
+      if (r.ok) window.location.reload();
+    },
+  }
+}
+</script>
 {% endblock %}

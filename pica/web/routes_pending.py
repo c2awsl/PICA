@@ -1,4 +1,5 @@
 import json
+from collections import OrderedDict
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Request
@@ -31,7 +32,42 @@ SORT_MAP = {
     "suggested_category": Image.suggested_category,
     "width": Image.width,
     "height": Image.height,
+    "ai_status": Image.ai_status,
 }
+
+
+def _extract_all_tags(db: Session) -> list:
+    """Extract all unique tags from the database."""
+    all_tags = set()
+    rows = db.execute(
+        select(Image.suggested_tags).where(
+            Image.suggested_tags.isnot(None), Image.suggested_tags != ""
+        )
+    ).scalars().all()
+    for r in rows:
+        try:
+            tags = json.loads(r)
+            if isinstance(tags, list):
+                for t in tags:
+                    if isinstance(t, str) and t.strip():
+                        all_tags.add(t.strip())
+        except (json.JSONDecodeError, TypeError):
+            pass
+    rows2 = db.execute(
+        select(Image.confirmed_tags).where(
+            Image.confirmed_tags.isnot(None), Image.confirmed_tags != ""
+        )
+    ).scalars().all()
+    for r in rows2:
+        try:
+            tags = json.loads(r)
+            if isinstance(tags, list):
+                for t in tags:
+                    if isinstance(t, str) and t.strip():
+                        all_tags.add(t.strip())
+        except (json.JSONDecodeError, TypeError):
+            pass
+    return sorted(all_tags)
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -72,6 +108,7 @@ async def pending_list(request: Request, db: Session = Depends(get_db)):
         "view": view,
         "type_values": _get_type_values(db),
         "work_values": _get_work_values(db),
+        "all_tags": _extract_all_tags(db),
         "sort": sort,
         "order": order,
     }
@@ -85,7 +122,6 @@ async def pending_list(request: Request, db: Session = Depends(get_db)):
         )
         images = db.execute(stmt).scalars().all()
 
-        from collections import OrderedDict
         groups = OrderedDict()
         for img in images:
             gid = img.similar_group_id or 0
@@ -128,26 +164,72 @@ def _get_work_values(db: Session) -> list:
     return rows
 
 
-def _get_type_values(db: Session) -> list:
-    rows = db.execute(
-        select(Image.image_type)
-        .where(Image.image_type.isnot(None), Image.image_type != "")
-        .distinct()
-        .order_by(Image.image_type)
-    ).scalars().all()
-    return rows
-
-
 @router.get("/pending/{image_id}", response_class=HTMLResponse)
 async def pending_detail(request: Request, image_id: int, db: Session = Depends(get_db)):
     cfg = request.app.state.cfg
     img = db.get(Image, image_id)
     if not img:
         return HTMLResponse("Not found", status_code=404)
+    similar = []
+    if img.similar_group_id:
+        similar = db.execute(
+            select(Image).where(
+                Image.similar_group_id == img.similar_group_id,
+                Image.id != img.id,
+            ).limit(12)
+        ).scalars().all()
     return request.app.state.templates.TemplateResponse(
         "detail.html",
-        {"request": request, "img": img, "categories": cfg.categories},
+        {"request": request, "img": img, "categories": cfg.categories, "similar_images": similar},
     )
+
+
+@router.get("/pending/{image_id}/data")
+async def pending_image_data(image_id: int, db: Session = Depends(get_db)):
+    img = db.get(Image, image_id)
+    if not img:
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return {
+        "id": img.id,
+        "md5_hash": img.md5_hash,
+        "filename": img.filename,
+        "suggested_category": img.suggested_category_list,
+        "suggested_tags": img.suggested_tags_list,
+        "work_name": img.work_name or "",
+        "image_type": img.image_type or "",
+        "all_tags": sorted(set(
+            img.suggested_tags_list + img.confirmed_tags_list
+        )) if img.confirmed_tags_list else img.suggested_tags_list,
+    }
+
+
+@router.post("/pending/{image_id}/edit")
+async def edit_pending_image(request: Request, image_id: int, db: Session = Depends(get_db)):
+    img = db.get(Image, image_id)
+    if not img or img.status != ImageStatus.PENDING:
+        return JSONResponse({"error": "not found"}, status_code=404)
+    form = await request.form()
+    category = form.get("category", "")
+    tags = form.get("tags", "")
+    work = form.get("work", "")
+    img_type = form.get("image_type", "")
+    if category:
+        img.suggested_category = json.dumps(
+            [c.strip() for c in category.split(",") if c.strip()],
+            ensure_ascii=False,
+        )
+    if tags:
+        img.suggested_tags = json.dumps(
+            [t.strip() for t in tags.split(",") if t.strip()],
+            ensure_ascii=False,
+        )
+    if work:
+        img.work_name = work
+    if img_type:
+        img.image_type = img_type
+    db.commit()
+    ref = request.headers.get("Referer", "/pending")
+    return RedirectResponse(url=ref, status_code=303)
 
 
 @router.post("/pending/{image_id}/confirm")
@@ -164,6 +246,8 @@ async def confirm_image(
     form = await request.form()
     raw_category = form.get("category", "")
     raw_tags = form.get("tags", "")
+    raw_work = form.get("work", "")
+    raw_type = form.get("image_type", "")
 
     if raw_category:
         confirmed_category = [c.strip() for c in raw_category.split(",") if c.strip()]
@@ -174,6 +258,11 @@ async def confirm_image(
         confirmed_tags = [t.strip() for t in raw_tags.split(",") if t.strip()]
     else:
         confirmed_tags = img.suggested_tags_list
+
+    if raw_work:
+        img.work_name = raw_work.strip()
+    if raw_type:
+        img.image_type = raw_type.strip()
 
     primary_category = confirmed_category[0] if confirmed_category else "未分类"
 
@@ -190,7 +279,8 @@ async def confirm_image(
 
     cleanup_pending(img.pending_path)
 
-    return RedirectResponse(url="/pending", status_code=303)
+    ref = request.headers.get("Referer", "/pending")
+    return RedirectResponse(url=ref, status_code=303)
 
 
 @router.post("/pending/batch-confirm")
