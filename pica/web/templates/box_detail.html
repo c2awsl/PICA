@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}{{ box.name }}{% endblock %}
+{% block content %}
+<div class="page-pad">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div>
+            <a href="/boxes" class="apple-link" style="font-size:12px;margin-bottom:4px;display:inline-block">
+                <i class="fa-regular fa-chevron-left"></i> 返回收纳盒
+            </a>
+            <h1 class="page-title" style="margin-bottom:0;margin-top:4px">
+                {% if box.color %}
+                <span style="display:inline-block;width:20px;height:20px;border-radius:50%;background:{{ box.color }};vertical-align:middle;margin-right:8px"></span>
+                {% endif %}
+                {{ box.name }}
+            </h1>
+        </div>
+        <div style="display:flex;gap:8px">
+            <form method="POST" action="/boxes/{{ box.id }}/rename" style="display:flex;gap:6px;align-items:center">
+                <input type="text" name="name" class="apple-input" style="width:140px" value="{{ box.name }}" placeholder="重命名">
+                <button class="apple-btn apple-btn-secondary" style="height:36px"><i class="fa-regular fa-pen"></i></button>
+            </form>
+            <form method="POST" action="/boxes/{{ box.id }}/delete" onsubmit="return confirm('确定要删除这个收纳盒吗？图片不会被删除。')">
+                <button class="apple-btn apple-btn-destructive" style="height:36px"><i class="fa-regular fa-trash-can"></i></button>
+            </form>
+        </div>
+    </div>
+
+    {% if not images %}
+    <div class="empty-state">
+        <i class="fa-regular fa-box-open"></i>
+        <p>这个收纳盒还是空的</p>
+        <p class="hint">从归档页面选择图片添加到收纳盒</p>
+    </div>
+    {% else %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px">
+        {% for img in images %}
+        <div class="apple-card" style="padding:12px;overflow:hidden" id="img-{{ img.id }}">
+            <div style="aspect-ratio:16/10;border-radius:8px;overflow:hidden;background:#f0f0f2;margin-bottom:10px">
+                <img src="/thumbnail/archive/{{ img.id }}" alt="" style="width:100%;height:100%;object-fit:cover">
+            </div>
+            <div style="font-size:11px;color:#86868b;margin-bottom:4px">
+                {% if img.work_name %}{{ img.work_name }}{% endif %}
+                {% if img.image_type %} · {{ img.image_type }}{% endif %}
+            </div>
+            <div style="font-size:11px;color:#aeaeb2;margin-bottom:8px">
+                {{ img.original_filename or '未知文件' }}
+            </div>
+            <div style="display:flex;gap:6px">
+                <a href="/archive/{{ img.id }}" class="apple-btn apple-btn-secondary" style="flex:1;height:28px;font-size:11px;text-align:center">
+                    <i class="fa-regular fa-eye"></i>查看
+                </a>
+                <form method="POST" action="/boxes/{{ box.id }}/remove-image" style="flex:1">
+                    <input type="hidden" name="image_id" value="{{ img.id }}">
+                    <button class="apple-btn apple-btn-destructive" style="width:100%;height:28px;font-size:11px">
+                        <i class="fa-regular fa-xmark"></i>移除
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

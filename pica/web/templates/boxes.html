@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}收纳盒{% endblock %}
+{% block content %}
+<div class="page-pad">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <h1 class="page-title" style="margin-bottom:0"><i class="fa-regular fa-box" style="margin-right:10px;color:#007aff"></i>收纳盒</h1>
+        <button class="apple-btn" onclick="showCreateBox()">
+            <i class="fa-regular fa-plus"></i>新建收纳盒
+        </button>
+    </div>
+
+    {% if not boxes %}
+    <div class="empty-state">
+        <i class="fa-regular fa-box-open"></i>
+        <p>还没有收纳盒</p>
+        <p class="hint">创建收纳盒来整理你的图片收藏</p>
+    </div>
+    {% else %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px">
+        {% for box in boxes %}
+        <a href="/boxes/{{ box.id }}" class="apple-card" style="display:block;text-decoration:none;color:inherit;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;">
+            <div style="font-size:36px;margin-bottom:12px;color:#007aff">
+                <i class="fa-regular fa-box"></i>
+            </div>
+            <div style="font-size:15px;font-weight:600;margin-bottom:4px">{{ box.name }}</div>
+            <div style="font-size:12px;color:#86868b">
+                {{ box.item_count or 0 }} 张图片
+            </div>
+            {% if box.color %}
+            <div style="margin-top:8px">
+                <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:{{ box.color }}"></span>
+            </div>
+            {% endif %}
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Create Box Modal -->
+<div id="create-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:200;display:none;align-items:center;justify-content:center" onclick="if(event.target===this)hideCreateBox()">
+    <div class="apple-card" style="width:360px;padding:24px" onclick="event.stopPropagation()">
+        <h3 style="font-size:16px;font-weight:600;margin-bottom:16px">新建收纳盒</h3>
+        <form method="POST" action="/boxes/create">
+            <div class="field-group">
+                <label>名称</label>
+                <input type="text" name="name" class="apple-input" style="width:100%" placeholder="例如：壁纸合集" required>
+            </div>
+            <div class="field-group">
+                <label>颜色（可选）</label>
+                <input type="color" name="color" class="apple-input" style="width:100%;height:36px;padding:4px" value="#007aff">
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+                <button type="button" class="apple-btn apple-btn-secondary" onclick="hideCreateBox()">取消</button>
+                <button type="submit" class="apple-btn">创建</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function showCreateBox() {
+    document.getElementById('create-modal').style.display = 'flex';
+}
+function hideCreateBox() {
+    document.getElementById('create-modal').style.display = 'none';
+}
+</script>
+{% endblock %}

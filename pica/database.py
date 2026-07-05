@@ -19,6 +19,7 @@ class ImageStatus(str, enum.Enum):
     PENDING = "pending"
     CONFIRMED = "confirmed"
     REJECTED = "rejected"
+    RECYCLED = "recycled"
     SKIPPED = "skipped"
 
 
@@ -64,10 +65,15 @@ class Image(Base):
     similar_group_id = Column(Integer, ForeignKey("similar_groups.id"), nullable=True, index=True)
     has_text = Column(Integer, default=0)
     extracted_text = Column(Text)
+    user_edited = Column(Integer, default=0)
+    processed_at = Column(DateTime, nullable=True)
 
     __table_args__ = (
         Index("idx_status_created", "status", "created_at"),
         Index("idx_phash_status", "phash", "status"),
+        Index("idx_images_has_text", "has_text"),
+        Index("idx_images_user_edited", "user_edited"),
+        Index("idx_images_processed_at", "processed_at"),
     )
 
     similar_group = relationship("SimilarGroup", back_populates="images", foreign_keys=[similar_group_id])
@@ -145,6 +151,8 @@ class Image(Base):
             "similar_group_id": self.similar_group_id,
             "has_text": self.has_text,
             "extracted_text": self.extracted_text,
+            "user_edited": self.user_edited,
+            "processed_at": self.processed_at.isoformat() if self.processed_at else None,
         }
 
     def __repr__(self):
@@ -198,6 +206,46 @@ class ImageTag(Base):
     tag = relationship("Tag")
 
 
+class AuditLog(Base):
+    __tablename__ = "audit_log"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    action = Column(String(64), nullable=False, index=True)
+    image_id = Column(Integer, ForeignKey("images.id", ondelete="SET NULL"), nullable=True, index=True)
+    details = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    image = relationship("Image")
+
+
+class StorageBox(Base):
+    __tablename__ = "storage_boxes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(256), nullable=False)
+    color = Column(String(7), default="#007AFF")
+    sort_order = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    items = relationship("StorageBoxItem", back_populates="box", cascade="all, delete-orphan")
+
+
+class StorageBoxItem(Base):
+    __tablename__ = "storage_box_items"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    box_id = Column(Integer, ForeignKey("storage_boxes.id", ondelete="CASCADE"), nullable=False, index=True)
+    image_id = Column(Integer, ForeignKey("images.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    box = relationship("StorageBox", back_populates="items")
+    image = relationship("Image")
+
+    __table_args__ = (
+        Index("idx_box_item", "box_id", "image_id", unique=True),
+    )
+
+
 class ScanStatus(Base):
     __tablename__ = "scan_status"
 
@@ -225,6 +273,8 @@ def _migrate(engine):
             ("ai_status", "VARCHAR(16) DEFAULT 'pending'"),
             ("has_text", "INTEGER DEFAULT 0"),
             ("extracted_text", "TEXT"),
+            ("user_edited", "INTEGER DEFAULT 0"),
+            ("processed_at", "DATETIME"),
         ],
         "similar_groups": [
             ("processed", "INTEGER DEFAULT 0"),
@@ -301,6 +351,12 @@ def _migrate_json_to_relations(session: Session):
     if count:
         session.commit()
         logger.info("migrated category/tag relations for %d images", count)
+
+
+def log_action(session: Session, action: str, image_id: int | None = None, details: str | None = None):
+    """Record an action in the audit log."""
+    log = AuditLog(action=action, image_id=image_id, details=details)
+    session.add(log)
 
 
 def init_db(cfg: Config):

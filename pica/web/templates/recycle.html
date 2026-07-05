@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}回收站{% endblock %}
+{% block content %}
+<div class="page-pad">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <h1 class="page-title" style="margin-bottom:0"><i class="fa-regular fa-trash-can" style="margin-right:10px;color:#ff3b30"></i>回收站</h1>
+        <div style="display:flex;gap:8px">
+            <button class="apple-btn apple-btn-destructive" onclick="emptyRecycle()">
+                <i class="fa-regular fa-trash-can"></i>清空回收站
+            </button>
+        </div>
+    </div>
+
+    {% if not images %}
+    <div class="empty-state">
+        <i class="fa-regular fa-trash-can"></i>
+        <p>回收站是空的</p>
+        <p class="hint">从待确认页面删除的图片会出现在这里</p>
+    </div>
+    {% else %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px">
+        {% for img in images %}
+        <div class="apple-card" style="padding:12px;overflow:hidden" id="img-{{ img.id }}">
+            <div style="aspect-ratio:16/10;border-radius:8px;overflow:hidden;background:#f0f0f2;margin-bottom:10px">
+                {% if img.pending_path %}
+                <img src="/thumbnail/pending/{{ img.id }}" alt="" style="width:100%;height:100%;object-fit:cover">
+                {% elif img.archive_path %}
+                <img src="/thumbnail/archive/{{ img.id }}" alt="" style="width:100%;height:100%;object-fit:cover">
+                {% endif %}
+            </div>
+            <div style="font-size:11px;color:#86868b;margin-bottom:4px">
+                {% if img.work_name %}{{ img.work_name }}{% endif %}
+                {% if img.image_type %} · {{ img.image_type }}{% endif %}
+            </div>
+            <div style="font-size:11px;color:#aeaeb2;margin-bottom:8px">
+                {{ img.original_filename or '未知文件' }}
+            </div>
+            <div style="display:flex;gap:6px">
+                <button class="apple-btn apple-btn-secondary" style="flex:1;height:28px;font-size:11px" onclick="restoreImage({{ img.id }})">
+                    <i class="fa-regular fa-rotate-left"></i>恢复
+                </button>
+                <button class="apple-btn apple-btn-destructive" style="flex:1;height:28px;font-size:11px" onclick="deleteImage({{ img.id }})">
+                    <i class="fa-regular fa-xmark"></i>永久删除
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<form id="restore-form" method="POST" action="/recycle/restore" style="display:none">
+    <input type="hidden" name="image_id" id="restore-id">
+</form>
+<form id="restore-batch-form" method="POST" action="/recycle/restore-batch" style="display:none">
+    <input type="hidden" name="image_ids" id="restore-batch-ids">
+</form>
+<form id="delete-form" method="POST" action="/recycle/delete" style="display:none">
+    <input type="hidden" name="image_id" id="delete-id">
+</form>
+<form id="empty-form" method="POST" action="/recycle/empty" style="display:none"></form>
+
+<script>
+function restoreImage(id) {
+    document.getElementById('restore-id').value = id;
+    document.getElementById('restore-form').submit();
+}
+function deleteImage(id) {
+    if (!confirm('确定要永久删除这张图片吗？此操作不可撤销。')) return;
+    document.getElementById('delete-id').value = id;
+    document.getElementById('delete-form').submit();
+}
+function emptyRecycle() {
+    if (!confirm('确定要清空回收站吗？所有图片将被永久删除。')) return;
+    document.getElementById('empty-form').submit();
+}
+</script>
+{% endblock %}

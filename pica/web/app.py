@@ -15,6 +15,9 @@ from pica.web.routes_browse import router as browse_router
 from pica.web.routes_tags import router as tags_router
 from pica.web.routes_groups import router as groups_router
 from pica.web.routes_categories import router as categories_router
+from pica.web.routes_recycle import router as recycle_router
+from pica.web.routes_boxes import router as boxes_router
+from pica.web.routes_audit import router as audit_router
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 
@@ -42,5 +45,8 @@ def create_app(cfg: Config, worker=None, cfg_file_path: Path | None = None) -> F
     app.include_router(tags_router, prefix="")
     app.include_router(groups_router, prefix="")
     app.include_router(categories_router, prefix="")
+    app.include_router(recycle_router, prefix="")
+    app.include_router(boxes_router, prefix="")
+    app.include_router(audit_router, prefix="")
 
     return app

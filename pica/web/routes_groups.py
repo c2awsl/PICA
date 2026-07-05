@@ -1,9 +1,11 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from pica.database import Image, ImageStatus, SimilarGroup
+from pica.database import Image, ImageStatus, SimilarGroup, log_action
 
 router = APIRouter()
 
@@ -111,6 +113,9 @@ async def process_group(request: Request, group_id: int, db: Session = Depends(g
                 cleanup_pending(img.pending_path)
 
     g.processed = 1
+    for img in images:
+        img.processed_at = datetime.utcnow()
+    log_action(db, "group_process", group_id, f"处理相似组: keep={keep_ids}")
     db.commit()
 
     ref = request.headers.get("Referer", "/groups")
@@ -131,6 +136,7 @@ async def remove_image_from_group(request: Request, group_id: int, db: Session =
         return JSONResponse({"error": "image not found"}, status_code=404)
 
     img.similar_group_id = None
+    log_action(db, "group_remove", image_id, f"从相似组 {group_id} 移除")
     db.commit()
 
     ref = request.headers.get("Referer", f"/groups/{group_id}")
@@ -146,6 +152,7 @@ async def rename_group(request: Request, group_id: int, db: Session = Depends(ge
     name = form.get("name", "").strip()
     if name:
         g.name = name
+        log_action(db, "group_rename", group_id, f"重命名相似组: {name}")
         db.commit()
     ref = request.headers.get("Referer", "/groups")
     return RedirectResponse(url=ref, status_code=303)
@@ -160,6 +167,7 @@ async def delete_group(request: Request, group_id: int, db: Session = Depends(ge
         Image.__table__.update().where(Image.similar_group_id == group_id)
         .values(similar_group_id=None)
     )
+    log_action(db, "group_delete", group_id, "删除相似组")
     db.delete(g)
     db.commit()
     ref = request.headers.get("Referer", "/groups")
@@ -175,6 +183,7 @@ async def ungroup_images(request: Request, group_id: int, db: Session = Depends(
         Image.__table__.update().where(Image.similar_group_id == group_id)
         .values(similar_group_id=None)
     )
+    log_action(db, "group_ungroup", group_id, "取消分组")
     db.delete(g)
     db.commit()
     ref = request.headers.get("Referer", "/groups")

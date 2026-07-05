@@ -286,8 +286,17 @@
             <a href="/groups" class="{{ 'active' if request.url.path.startswith('/groups') else '' }}">
                 <i class="fa-solid fa-layer-group mr-1.5"></i>分组
             </a>
+            <a href="/boxes" class="{{ 'active' if request.url.path.startswith('/boxes') else '' }}">
+                <i class="fa-regular fa-box mr-1.5"></i>收纳盒
+            </a>
+            <a href="/recycle" class="{{ 'active' if request.url.path == '/recycle' else '' }}">
+                <i class="fa-regular fa-trash-can mr-1.5"></i>回收站
+            </a>
         </nav>
         <div class="titlebar-right">
+            <a href="/audit" class="icon-btn" title="操作日志">
+                <i class="fa-regular fa-clock"></i>
+            </a>
             <a href="/settings" class="icon-btn {{ 'active' if request.url.path == '/settings' else '' }}" title="设置">
                 <i class="fa-solid fa-gear"></i>
             </a>

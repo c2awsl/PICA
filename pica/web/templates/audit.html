@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}操作日志{% endblock %}
+{% block content %}
+<div class="page-pad">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <h1 class="page-title" style="margin-bottom:0"><i class="fa-regular fa-clock" style="margin-right:10px;color:#86868b"></i>操作日志</h1>
+    </div>
+
+    {% if not logs %}
+    <div class="empty-state">
+        <i class="fa-regular fa-clock"></i>
+        <p>暂无操作记录</p>
+    </div>
+    {% else %}
+    <div style="display:flex;flex-direction:column;gap:4px">
+        {% for log in logs %}
+        <div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:#fff;border-radius:8px;font-size:12px">
+            <span style="color:#aeaeb2;white-space:nowrap;font-family:monospace;font-size:11px">
+                {{ log.created_at.strftime('%m-%d %H:%M') if log.created_at else '' }}
+            </span>
+            <span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:500;
+                {% if log.action == 'confirm' %}background:rgba(52,199,89,0.1);color:#1a6a32
+                {% elif log.action == 'recycle' %}background:rgba(255,59,48,0.1);color:#b82e24
+                {% elif log.action == 'edit' %}background:rgba(0,122,255,0.1);color:#007aff
+                {% elif log.action == 'group_process' %}background:rgba(175,82,222,0.1);color:#7b2f9e
+                {% else %}background:rgba(0,0,0,0.04);color:#86868b{% endif %}">
+                {{ log.action }}
+            </span>
+            {% if log.image_id %}
+            <a href="/archive/{{ log.image_id }}" class="apple-link" style="font-size:12px">
+                图片 #{{ log.image_id }}
+            </a>
+            {% endif %}
+            <span style="color:#86868b;margin-left:auto">{{ log.details or '' }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

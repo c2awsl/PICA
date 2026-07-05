@@ -8,7 +8,7 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 from pica.database import (
-    Category, Image, ImageCategory, ImageStatus, ImageTag, Tag,
+    Category, Image, ImageCategory, ImageStatus, ImageTag, Tag, log_action,
 )
 from pica.archiver import archive_image, cleanup_pending
 
@@ -341,6 +341,9 @@ async def edit_pending_image(request: Request, image_id: int, db: Session = Depe
         img.work_name = work
     if img_type:
         img.image_type = img_type
+    img.user_edited = 1
+    img.processed_at = datetime.utcnow()
+    log_action(db, "edit", image_id, f"编辑: category={category}, tags={tags}, work={work}, type={img_type}")
     db.commit()
     ref = request.headers.get("Referer", "/pending")
     return RedirectResponse(url=ref, status_code=303)
@@ -389,6 +392,8 @@ async def confirm_image(
     img.archive_path = str(archive_dest)
     img.status = ImageStatus.CONFIRMED
     img.confirmed_at = datetime.utcnow()
+    img.processed_at = datetime.utcnow()
+    log_action(db, "confirm", img.id, f"归档: {primary_category}")
 
     # Write to new junction tables
     db.query(ImageCategory).filter_by(image_id=img.id, source="confirmed").delete()
@@ -442,6 +447,8 @@ async def batch_confirm(request: Request, db: Session = Depends(get_db)):
         img.archive_path = str(archive_dest)
         img.status = ImageStatus.CONFIRMED
         img.confirmed_at = datetime.utcnow()
+        img.processed_at = datetime.utcnow()
+        log_action(db, "confirm", img.id, f"批量归档: {category}")
 
         # Write to junction tables
         db.query(ImageCategory).filter_by(image_id=img.id, source="confirmed").delete()
@@ -477,7 +484,9 @@ async def batch_reject(request: Request, db: Session = Depends(get_db)):
         img = db.get(Image, int(img_id))
         if not img or img.status != ImageStatus.PENDING:
             continue
-        img.status = ImageStatus.REJECTED
+        img.status = ImageStatus.RECYCLED
+        img.processed_at = datetime.utcnow()
+        log_action(db, "recycle", img.id, "批量移入回收站")
         cleanup_pending(img.pending_path)
     db.commit()
     return RedirectResponse(url=form.get("redirect", "/pending"), status_code=303)
@@ -489,7 +498,9 @@ async def reject_image(image_id: int, db: Session = Depends(get_db)):
     if not img:
         return JSONResponse({"success": False, "error": "not found"}, status_code=404)
 
-    img.status = ImageStatus.REJECTED
+    img.status = ImageStatus.RECYCLED
+    img.processed_at = datetime.utcnow()
+    log_action(db, "recycle", image_id, "移入回收站")
     db.commit()
 
     cleanup_pending(img.pending_path)

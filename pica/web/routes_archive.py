@@ -6,7 +6,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
-from pica.database import Image, ImageStatus
+from pica.database import Image, ImageStatus, ImageCategory, ImageTag, Category, Tag, log_action
 
 router = APIRouter()
 
@@ -145,6 +145,9 @@ async def edit_archive_image(request: Request, image_id: int, db: Session = Depe
         img.work_name = work.strip()
     if img_type:
         img.image_type = img_type.strip()
+    img.user_edited = 1
+    img.processed_at = datetime.utcnow()
+    log_action(db, "edit", image_id, f"归档编辑: category={category}, tags={tags}, work={work}, type={img_type}")
     db.commit()
     ref = request.headers.get("Referer", f"/archive/{image_id}")
     return RedirectResponse(url=ref, status_code=303)
@@ -179,6 +182,10 @@ async def batch_edit_archive(request: Request, db: Session = Depends(get_db)):
             )
         elif action == "set_work" and value:
             img.work_name = value.strip()
+        img.user_edited = 1
+        img.processed_at = datetime.utcnow()
         count += 1
+    if count:
+        log_action(db, "batch_edit", 0, f"批量编辑: action={action}, value={value}, count={count}")
     db.commit()
     return JSONResponse({"success": True, "count": count})
