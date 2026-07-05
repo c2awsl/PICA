@@ -1,64 +1,193 @@
 {% extends "base.html" %}
 {% block title %}{{ box.name }}{% endblock %}
 {% block content %}
-<div class="page-pad">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-        <div>
-            <a href="/boxes" class="apple-link" style="font-size:12px;margin-bottom:4px;display:inline-block">
-                <i class="fa-regular fa-chevron-left"></i> 返回收纳盒
-            </a>
-            <h1 class="page-title" style="margin-bottom:0;margin-top:4px">
-                {% if box.color %}
-                <span style="display:inline-block;width:20px;height:20px;border-radius:50%;background:{{ box.color }};vertical-align:middle;margin-right:8px"></span>
-                {% endif %}
-                {{ box.name }}
-            </h1>
+<div x-data="boxDetailApp()" x-init="init()" class="min-h-screen" style="background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <!-- Header -->
+  <div class="sticky top-0 z-30 bg-white/80 backdrop-blur-2xl border-b border-white/30 px-6 py-3">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="/boxes" class="text-[11px] text-blue-500 hover:text-blue-600 flex items-center gap-1 bg-transparent border-none cursor-pointer" style="text-decoration:none">
+          <i class="fa-regular fa-chevron-left" style="font-size:8px"></i> 返回
+        </a>
+        <div class="w-8 h-8 rounded-full flex items-center justify-center shadow-sm"
+             :style="'background:' + (box.color || '#007aff') + '18;color:' + (box.color || '#007aff')">
+          <i class="fa-regular fa-box" style="font-size:13px"></i>
         </div>
-        <div style="display:flex;gap:8px">
-            <form method="POST" action="/boxes/{{ box.id }}/rename" style="display:flex;gap:6px;align-items:center">
-                <input type="text" name="name" class="apple-input" style="width:140px" value="{{ box.name }}" placeholder="重命名">
-                <button class="apple-btn apple-btn-secondary" style="height:36px"><i class="fa-regular fa-pen"></i></button>
-            </form>
-            <form method="POST" action="/boxes/{{ box.id }}/delete" onsubmit="return confirm('确定要删除这个收纳盒吗？图片不会被删除。')">
-                <button class="apple-btn apple-btn-destructive" style="height:36px"><i class="fa-regular fa-trash-can"></i></button>
-            </form>
+        <h1 class="text-base font-semibold text-gray-800" x-text="box.name"></h1>
+        <span class="text-[11px] text-gray-400" x-text="images.length + ' 张图片'"></span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5" x-show="!renaming">
+          <input type="text" x-model="renameText" @keydown.enter="submitRename" @keydown.escape="renaming=false"
+                 x-show="renaming" x-cloak
+                 class="h-8 px-3 text-xs bg-white border border-blue-300/60 rounded-xl outline-none w-32" x-ref="renameInput">
+          <button @click="startRename" x-show="!renaming"
+                  class="h-8 px-3 rounded-xl text-xs font-medium flex items-center gap-1"
+                  style="background:rgba(0,0,0,0.04);color:#555;border:none;cursor:pointer">
+            <i class="fa-regular fa-pen" style="font-size:10px"></i>重命名
+          </button>
+          <button @click="submitRename" x-show="renaming"
+                  class="h-8 px-3 rounded-xl text-xs font-medium"
+                  style="background:rgba(0,122,255,0.15);color:#007aff;border:none;cursor:pointer">保存</button>
+          <button @click="renaming=false" x-show="renaming"
+                  class="h-8 px-3 rounded-xl text-xs font-medium"
+                  style="background:rgba(0,0,0,0.04);color:#555;border:none;cursor:pointer">取消</button>
         </div>
+        <button @click="deleteBox"
+                class="h-8 px-3 rounded-xl text-xs font-medium flex items-center gap-1"
+                style="background:rgba(255,59,48,0.08);color:#b82e24;border:none;cursor:pointer;transition:all 0.2s"
+                @mouseenter="$el.style.background='rgba(255,59,48,0.2)'"
+                @mouseleave="$el.style.background='rgba(255,59,48,0.08)'">
+          <i class="fa-regular fa-trash-can" style="font-size:10px"></i>删除
+        </button>
+      </div>
     </div>
+  </div>
 
-    {% if not images %}
-    <div class="empty-state">
-        <i class="fa-regular fa-box-open"></i>
-        <p>这个收纳盒还是空的</p>
-        <p class="hint">从归档页面选择图片添加到收纳盒</p>
-    </div>
-    {% else %}
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px">
-        {% for img in images %}
-        <div class="apple-card" style="padding:12px;overflow:hidden" id="img-{{ img.id }}">
-            <div style="aspect-ratio:16/10;border-radius:8px;overflow:hidden;background:#f0f0f2;margin-bottom:10px">
-                <img src="/thumbnail/archive/{{ img.id }}" alt="" style="width:100%;height:100%;object-fit:cover">
-            </div>
-            <div style="font-size:11px;color:#86868b;margin-bottom:4px">
-                {% if img.work_name %}{{ img.work_name }}{% endif %}
-                {% if img.image_type %} · {{ img.image_type }}{% endif %}
-            </div>
-            <div style="font-size:11px;color:#aeaeb2;margin-bottom:8px">
-                {{ img.original_filename or '未知文件' }}
-            </div>
-            <div style="display:flex;gap:6px">
-                <a href="/archive/{{ img.id }}" class="apple-btn apple-btn-secondary" style="flex:1;height:28px;font-size:11px;text-align:center">
-                    <i class="fa-regular fa-eye"></i>查看
-                </a>
-                <form method="POST" action="/boxes/{{ box.id }}/remove-image" style="flex:1">
-                    <input type="hidden" name="image_id" value="{{ img.id }}">
-                    <button class="apple-btn apple-btn-destructive" style="width:100%;height:28px;font-size:11px">
-                        <i class="fa-regular fa-xmark"></i>移除
-                    </button>
-                </form>
-            </div>
+  <div class="p-6">
+    <template x-if="!images.length">
+      <div class="flex flex-col items-center justify-center py-24 text-gray-400">
+        <i class="fa-regular fa-box-open text-5xl mb-4 opacity-20"></i>
+        <p class="text-sm font-medium text-gray-500">这个收纳盒还是空的</p>
+        <p class="text-[11px] mt-1 text-gray-300">从其他页面拖入或选择图片添加</p>
+      </div>
+    </template>
+
+    <template x-if="images.length">
+      <div>
+        <!-- Selection bar -->
+        <div x-show="selected.length" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-lg"
+             style="background:rgba(255,255,255,0.92);backdrop-filter:blur(30px);border:1px solid rgba(0,0,0,0.06);">
+          <span class="text-xs font-semibold text-gray-600 whitespace-nowrap">已选 <span x-text="selected.length"></span> 项</span>
+          <div class="w-px h-5 bg-gray-200"></div>
+          <button @click="batchRemove" class="h-8 px-4 rounded-xl text-xs font-medium flex items-center gap-1.5"
+                  style="background:rgba(255,59,48,0.12);color:#b82e24;border:none;cursor:pointer;transition:all 0.2s"
+                  @mouseenter="$el.style.background='rgba(255,59,48,0.25)'"
+                  @mouseleave="$el.style.background='rgba(255,59,48,0.12)'">
+            <i class="fa-regular fa-xmark"></i>移出收纳盒
+          </button>
+          <div class="w-px h-5 bg-gray-200"></div>
+          <button @click="selected = []" class="text-xs text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer">取消选择</button>
         </div>
-        {% endfor %}
-    </div>
-    {% endif %}
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px">
+          <template x-for="img in images" :key="img.id">
+            <div class="relative rounded-2xl overflow-hidden transition-all duration-200 cursor-pointer"
+                 :class="selected.includes(img.id) ? 'ring-2 ring-blue-400 shadow-md' : 'hover:shadow-sm'"
+                 style="background:rgba(255,255,255,0.8);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.4);"
+                 @click="toggleSelect(img.id)"
+                 draggable="true"
+                 @dragstart="onDragStart($event, {id:img.id,thumb:'/thumbnails/'+img.md5_hash+'_256.jpg',lightbox:'/thumbnails/'+img.md5_hash+'_1024.jpg'})"
+                 data-img-id="">
+              <div style="aspect-ratio:16/10;overflow:hidden;background:#f0f0f2;">
+                <img :src="'/thumbnails/' + img.md5_hash + '_256.jpg'"
+                     :alt="img.filename"
+                     loading="lazy"
+                     style="width:100%;height:100%;object-fit:cover"
+                     @error="$el.style.display='none'">
+              </div>
+              <div class="p-3">
+                <div class="text-[11px] text-gray-500 mb-1 truncate" x-text="img.filename"></div>
+                <div class="flex items-center gap-2">
+                  <a :href="'/archive/' + img.id" class="flex-1 h-7 rounded-xl text-[11px] font-medium flex items-center justify-center gap-1"
+                     style="background:rgba(0,122,255,0.08);color:#007aff;text-decoration:none;transition:all 0.2s"
+                     @mouseenter="$el.style.background='rgba(0,122,255,0.2)'"
+                     @mouseleave="$el.style.background='rgba(0,122,255,0.08)'">
+                    <i class="fa-regular fa-eye" style="font-size:9px"></i>查看
+                  </a>
+                  <button @click.stop="removeOne(img.id)" class="flex-1 h-7 rounded-xl text-[11px] font-medium flex items-center justify-center gap-1"
+                          style="background:rgba(255,59,48,0.08);color:#b82e24;border:none;cursor:pointer;transition:all 0.2s"
+                          @mouseenter="$el.style.background='rgba(255,59,48,0.2)'"
+                          @mouseleave="$el.style.background='rgba(255,59,48,0.08)'">
+                    <i class="fa-regular fa-xmark" style="font-size:9px"></i>移除
+                  </button>
+                </div>
+              </div>
+              <!-- Checkbox overlay -->
+              <div class="absolute top-2 left-2 w-5 h-5 rounded-md flex items-center justify-center transition-all duration-150"
+                   :class="selected.includes(img.id) ? 'bg-blue-500 text-white' : 'bg-white/80 text-transparent'"
+                   style="border:1.5px solid rgba(0,0,0,0.12);font-size:11px">
+                <i class="fa-solid fa-check" x-show="selected.includes(img.id)"></i>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </template>
+  </div>
 </div>
+
+<script>
+function boxDetailApp() {
+  return {
+    box: {{ box | tojson }},
+    images: {{ images | tojson }},
+    selected: [],
+    renaming: false,
+    renameText: '',
+
+    init() {
+      this.renameText = this.box.name;
+      this.$nextTick(() => {
+        const cards = document.querySelectorAll('[data-img-id]');
+        cards.forEach((el, i) => {
+          if (this.images[i]) el.dataset.imgId = this.images[i].id;
+        });
+      });
+      window.__marqueeAdd = (id) => {
+        if (!this.selected.includes(id)) this.selected.push(id);
+      };
+    },
+
+    toggleSelect(id) {
+      const idx = this.selected.indexOf(id);
+      if (idx >= 0) this.selected.splice(idx, 1);
+      else this.selected.push(id);
+    },
+
+    startRename() {
+      this.renaming = true;
+      this.$nextTick(() => { if (this.$refs.renameInput) this.$refs.renameInput.focus(); });
+    },
+
+    async submitRename() {
+      const name = this.renameText.trim();
+      if (!name || name === this.box.name) { this.renaming = false; return; }
+      const fd = new FormData();
+      fd.append('id', this.box.id);
+      fd.append('name', name);
+      await fetch('/boxes/rename', { method: 'POST', body: fd });
+      this.box.name = name;
+      this.renaming = false;
+    },
+
+    async deleteBox() {
+      if (!confirm('确定要删除这个收纳盒吗？图片不会被删除。')) return;
+      const fd = new FormData();
+      fd.append('id', this.box.id);
+      await fetch('/boxes/delete', { method: 'POST', body: fd });
+      window.location.href = '/boxes';
+    },
+
+    async removeOne(id) {
+      const fd = new FormData();
+      fd.append('image_id', id);
+      await fetch('/boxes/' + this.box.id + '/remove-image', { method: 'POST', body: fd });
+      this.images = this.images.filter(img => img.id !== id);
+      const idx = this.selected.indexOf(id);
+      if (idx >= 0) this.selected.splice(idx, 1);
+    },
+
+    async batchRemove() {
+      for (const id of this.selected) {
+        const fd = new FormData();
+        fd.append('image_id', id);
+        await fetch('/boxes/' + this.box.id + '/remove-image', { method: 'POST', body: fd });
+      }
+      this.images = this.images.filter(img => !this.selected.includes(img.id));
+      this.selected = [];
+    },
+  };
+}
+</script>
 {% endblock %}

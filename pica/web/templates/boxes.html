@@ -1,69 +1,111 @@
 {% extends "base.html" %}
 {% block title %}收纳盒{% endblock %}
 {% block content %}
-<div class="page-pad">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-        <h1 class="page-title" style="margin-bottom:0"><i class="fa-regular fa-box" style="margin-right:10px;color:#007aff"></i>收纳盒</h1>
-        <button class="apple-btn" onclick="showCreateBox()">
-            <i class="fa-regular fa-plus"></i>新建收纳盒
-        </button>
+<div x-data="boxesApp()" x-init="init()" class="min-h-screen" style="background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <!-- Header -->
+  <div class="sticky top-0 z-30 bg-white/80 backdrop-blur-2xl border-b border-white/30 px-6 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 shadow-sm">
+        <i class="fa-regular fa-box" style="font-size:13px"></i>
+      </div>
+      <h1 class="text-base font-semibold text-gray-800">收纳盒</h1>
+      <span class="text-[11px] text-gray-400" x-text="boxes.length + ' 个'"></span>
+    </div>
+    <button @click="showCreate=true; $nextTick(()=>{if($refs.createInput)$refs.createInput.focus()})"
+            class="h-8 px-4 rounded-full text-xs font-medium flex items-center gap-1.5"
+            style="background:rgba(0,122,255,0.15);color:#007aff;border:none;cursor:pointer;transition:all 0.2s"
+            @mouseenter="$el.style.background='rgba(0,122,255,0.25)'"
+            @mouseleave="$el.style.background='rgba(0,122,255,0.15)'">
+      <i class="fa-solid fa-plus"></i>新建收纳盒
+    </button>
+  </div>
+
+  <div class="p-6">
+    <!-- Create form -->
+    <div x-show="showCreate" class="max-w-md mx-auto mb-6 p-5 rounded-2xl"
+         style="background:rgba(255,255,255,0.8);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.4);">
+      <h3 class="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2">
+        <i class="fa-regular fa-plus text-blue-500"></i> 新建收纳盒
+      </h3>
+      <div class="space-y-3">
+        <div>
+          <label class="text-[11px] font-medium text-gray-500 mb-1 block">名称</label>
+          <input type="text" x-model="formName" @keydown.enter="submitCreate" @keydown.escape="showCreate=false"
+                 placeholder="例如：壁纸合集" x-ref="createInput"
+                 class="w-full h-10 px-3 text-sm bg-white border border-gray-200/80 rounded-xl focus:border-blue-400 outline-none transition-all">
+        </div>
+        <div class="flex gap-3">
+          <div class="flex-1">
+            <label class="text-[11px] font-medium text-gray-500 mb-1 block">颜色</label>
+            <input type="color" x-model="formColor"
+                   class="w-full h-10 rounded-xl border border-gray-200/80 cursor-pointer bg-white">
+          </div>
+        </div>
+        <div class="flex items-center gap-2 pt-1">
+          <button @click="submitCreate"
+                  class="h-9 px-5 rounded-xl text-xs font-medium"
+                  :disabled="!formName.trim()"
+                  style="background:rgba(0,122,255,0.15);color:#007aff;border:none;cursor:pointer;transition:all 0.2s"
+                  @mouseenter="$el.style.background='rgba(0,122,255,0.25)'"
+                  @mouseleave="$el.style.background='rgba(0,122,255,0.15)'">
+            <i class="fa-solid fa-check mr-1"></i>创建
+          </button>
+          <button @click="showCreate=false;formName=''" class="h-9 px-4 rounded-xl text-xs font-medium"
+                  style="background:rgba(0,0,0,0.04);color:#555;border:none;cursor:pointer">取消</button>
+        </div>
+      </div>
     </div>
 
-    {% if not boxes %}
-    <div class="empty-state">
-        <i class="fa-regular fa-box-open"></i>
-        <p>还没有收纳盒</p>
-        <p class="hint">创建收纳盒来整理你的图片收藏</p>
-    </div>
-    {% else %}
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px">
-        {% for box in boxes %}
-        <a href="/boxes/{{ box.id }}" class="apple-card" style="display:block;text-decoration:none;color:inherit;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;">
-            <div style="font-size:36px;margin-bottom:12px;color:#007aff">
-                <i class="fa-regular fa-box"></i>
-            </div>
-            <div style="font-size:15px;font-weight:600;margin-bottom:4px">{{ box.name }}</div>
-            <div style="font-size:12px;color:#86868b">
-                {{ box.item_count or 0 }} 张图片
-            </div>
-            {% if box.color %}
-            <div style="margin-top:8px">
-                <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:{{ box.color }}"></span>
-            </div>
-            {% endif %}
-        </a>
-        {% endfor %}
-    </div>
-    {% endif %}
-</div>
+    <template x-if="!boxes.length && !showCreate">
+      <div class="flex flex-col items-center justify-center py-24 text-gray-400">
+        <i class="fa-regular fa-box-open text-5xl mb-4 opacity-20"></i>
+        <p class="text-sm font-medium text-gray-500">还没有收纳盒</p>
+        <p class="text-[11px] mt-1 text-gray-300">点击右上角创建，或从其他页面拖入图片自动创建</p>
+      </div>
+    </template>
 
-<!-- Create Box Modal -->
-<div id="create-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:200;display:none;align-items:center;justify-content:center" onclick="if(event.target===this)hideCreateBox()">
-    <div class="apple-card" style="width:360px;padding:24px" onclick="event.stopPropagation()">
-        <h3 style="font-size:16px;font-weight:600;margin-bottom:16px">新建收纳盒</h3>
-        <form method="POST" action="/boxes/create">
-            <div class="field-group">
-                <label>名称</label>
-                <input type="text" name="name" class="apple-input" style="width:100%" placeholder="例如：壁纸合集" required>
+    <template x-if="boxes.length">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px">
+        <template x-for="box in boxes" :key="box.id">
+          <a :href="'/boxes/' + box.id"
+             class="block rounded-2xl transition-all duration-200 cursor-pointer hover:shadow-md"
+             style="background:rgba(255,255,255,0.8);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.4);text-decoration:none;color:inherit;padding:24px;text-align:center">
+            <div style="font-size:32px;margin-bottom:10px"
+                 :style="'color:' + (box.color || '#007aff')">
+              <i class="fa-regular fa-box"></i>
             </div>
-            <div class="field-group">
-                <label>颜色（可选）</label>
-                <input type="color" name="color" class="apple-input" style="width:100%;height:36px;padding:4px" value="#007aff">
+            <div class="text-sm font-semibold text-gray-800 mb-1 truncate" x-text="box.name"></div>
+            <div class="text-[11px] text-gray-400" x-text="box.count + ' 张图片'"></div>
+            <div x-show="box.color" class="mt-2 flex justify-center">
+              <span class="inline-block w-3 h-3 rounded-full" :style="'background:' + box.color"></span>
             </div>
-            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
-                <button type="button" class="apple-btn apple-btn-secondary" onclick="hideCreateBox()">取消</button>
-                <button type="submit" class="apple-btn">创建</button>
-            </div>
-        </form>
-    </div>
+          </a>
+        </template>
+      </div>
+    </template>
+  </div>
 </div>
 
 <script>
-function showCreateBox() {
-    document.getElementById('create-modal').style.display = 'flex';
-}
-function hideCreateBox() {
-    document.getElementById('create-modal').style.display = 'none';
+function boxesApp() {
+  return {
+    showCreate: false,
+    formName: '',
+    formColor: '#007AFF',
+    boxes: {{ box_data | tojson }},
+
+    async submitCreate() {
+      const name = this.formName.trim();
+      if (!name) return;
+      const fd = new FormData();
+      fd.append('name', name);
+      fd.append('color', this.formColor);
+      await fetch('/boxes/create', { method: 'POST', body: fd });
+      this.showCreate = false;
+      this.formName = '';
+      location.reload();
+    },
+  };
 }
 </script>
 {% endblock %}

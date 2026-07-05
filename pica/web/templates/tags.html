@@ -189,10 +189,11 @@ function tagApp() {
       this.selectedTag = tag;
       this.renaming = false;
       this.merging = false;
-      // Load images with this tag
+      this.tagImages = [];
       try {
-        const r = await fetch(`/archive?q=${encodeURIComponent(tag.name)}&limit=30&view=sm-icons`);
-        /* Simplified: just show we have images */
+        const r = await fetch(`/tags/${tag.id}/images`);
+        const data = await r.json();
+        this.tagImages = data.images || [];
       } catch(e) {}
     },
 

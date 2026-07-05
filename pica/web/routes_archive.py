@@ -8,6 +8,24 @@ from sqlalchemy.orm import Session
 
 from pica.database import Image, ImageStatus, ImageCategory, ImageTag, Category, Tag, log_action
 
+
+def _ensure_category(name: str, session: Session) -> Category:
+    cat = session.query(Category).filter_by(name=name).first()
+    if not cat:
+        cat = Category(name=name)
+        session.add(cat)
+        session.flush()
+    return cat
+
+
+def _ensure_tag(name: str, session: Session) -> Tag:
+    tag = session.query(Tag).filter_by(name=name).first()
+    if not tag:
+        tag = Tag(name=name)
+        session.add(tag)
+        session.flush()
+    return tag
+
 router = APIRouter()
 
 
@@ -68,7 +86,7 @@ async def archive_list(
         "archive.html",
         {
             "request": request,
-            "images": images,
+            "images": [img.to_dict() for img in images],
             "categories": cfg.categories,
             "category_counts": cat_counts,
             "current_category": category or "",
@@ -132,15 +150,19 @@ async def edit_archive_image(request: Request, image_id: int, db: Session = Depe
     work = form.get("work", "")
     img_type = form.get("image_type", "")
     if category:
-        img.confirmed_category = json.dumps(
-            [c.strip() for c in category.split(",") if c.strip()],
-            ensure_ascii=False,
-        )
+        cat_names = [c.strip() for c in category.split(",") if c.strip()]
+        img.confirmed_category = json.dumps(cat_names, ensure_ascii=False)
+        db.query(ImageCategory).filter_by(image_id=img.id, source="confirmed").delete()
+        for name in cat_names:
+            cat = _ensure_category(name, db)
+            db.add(ImageCategory(image_id=img.id, category_id=cat.id, source="confirmed"))
     if tags:
-        img.confirmed_tags = json.dumps(
-            [t.strip() for t in tags.split(",") if t.strip()],
-            ensure_ascii=False,
-        )
+        tag_names = [t.strip() for t in tags.split(",") if t.strip()]
+        img.confirmed_tags = json.dumps(tag_names, ensure_ascii=False)
+        db.query(ImageTag).filter_by(image_id=img.id, source="confirmed").delete()
+        for name in tag_names:
+            tag = _ensure_tag(name, db)
+            db.add(ImageTag(image_id=img.id, tag_id=tag.id, source="confirmed"))
     if work:
         img.work_name = work.strip()
     if img_type:
@@ -166,20 +188,37 @@ async def batch_edit_archive(request: Request, db: Session = Depends(get_db)):
         if not img or img.status != ImageStatus.CONFIRMED:
             continue
         if action == "add_tag" and value:
+            tag_name = value.strip()
             tags = img.confirmed_tags_list
-            if value.strip() not in tags:
-                tags.append(value.strip())
+            if tag_name not in tags:
+                tags.append(tag_name)
                 img.confirmed_tags = json.dumps(tags, ensure_ascii=False)
+                tag = _ensure_tag(tag_name, db)
+                existing = db.query(ImageTag).filter_by(
+                    image_id=img.id, tag_id=tag.id, source="confirmed"
+                ).first()
+                if not existing:
+                    db.add(ImageTag(image_id=img.id, tag_id=tag.id, source="confirmed"))
         elif action == "remove_tag" and value:
+            tag_name = value.strip()
             tags = img.confirmed_tags_list
-            if value.strip() in tags:
-                tags.remove(value.strip())
+            if tag_name in tags:
+                tags.remove(tag_name)
                 img.confirmed_tags = json.dumps(tags, ensure_ascii=False)
+                tag = db.query(Tag).filter_by(name=tag_name).first()
+                if tag:
+                    db.query(ImageTag).filter_by(
+                        image_id=img.id, tag_id=tag.id, source="confirmed"
+                    ).delete()
         elif action == "set_category" and value:
-            img.confirmed_category = json.dumps(
-                [c.strip() for c in value.split(",") if c.strip()],
-                ensure_ascii=False,
-            )
+            cat_names = [c.strip() for c in value.split(",") if c.strip()]
+            img.confirmed_category = json.dumps(cat_names, ensure_ascii=False)
+            db.query(ImageCategory).filter_by(
+                image_id=img.id, source="confirmed"
+            ).delete()
+            for name in cat_names:
+                cat = _ensure_category(name, db)
+                db.add(ImageCategory(image_id=img.id, category_id=cat.id, source="confirmed"))
         elif action == "set_work" and value:
             img.work_name = value.strip()
         img.user_edited = 1

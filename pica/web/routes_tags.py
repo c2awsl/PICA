@@ -58,6 +58,25 @@ async def tags_data(request: Request, db: Session = Depends(get_db)):
     return JSONResponse({"tags": _collect_tags(db)})
 
 
+@router.get("/tags/{tag_id}/images")
+async def tag_images(tag_id: int, db: Session = Depends(get_db)):
+    tag = db.query(Tag).filter_by(id=tag_id).first()
+    if not tag:
+        return JSONResponse({"images": []})
+    links = db.query(ImageTag).filter_by(tag_id=tag_id).order_by(ImageTag.id.desc()).limit(30).all()
+    images = []
+    for link in links:
+        img = link.image
+        if img:
+            images.append({
+                "id": img.id,
+                "md5_hash": img.md5_hash,
+                "filename": img.original_filename or img.filename or "",
+                "status": img.status.value if img.status else "",
+            })
+    return JSONResponse({"images": images, "tag": {"id": tag.id, "name": tag.name}})
+
+
 @router.post("/tags/create")
 async def create_tag(request: Request, db: Session = Depends(get_db)):
     form = await request.form()

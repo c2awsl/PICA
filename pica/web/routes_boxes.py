@@ -27,7 +27,7 @@ async def boxes_page(request: Request, db: Session = Depends(get_db)):
         count = db.query(func.count(StorageBoxItem.id)).filter(
             StorageBoxItem.box_id == b.id
         ).scalar() or 0
-        box_data.append({"box": b, "count": count})
+        box_data.append({"id": b.id, "name": b.name, "color": b.color, "count": count})
     return request.app.state.templates.TemplateResponse(
         "boxes.html",
         {"request": request, "box_data": box_data},
@@ -46,7 +46,8 @@ async def box_detail(request: Request, box_id: int, db: Session = Depends(get_db
     images = [it.image for it in items if it.image]
     return request.app.state.templates.TemplateResponse(
         "box_detail.html",
-        {"request": request, "box": box, "images": images},
+        {"request": request, "box": {"id": box.id, "name": box.name, "color": box.color},
+         "images": [img.to_dict() for img in images]},
     )
 
 

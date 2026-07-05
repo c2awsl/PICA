@@ -29,7 +29,7 @@ async def recycle_page(request: Request, db: Session = Depends(get_db)):
     ).scalars().all()
     return request.app.state.templates.TemplateResponse(
         "recycle.html",
-        {"request": request, "images": images},
+        {"request": request, "images": [img.to_dict() for img in images]},
     )
 
 

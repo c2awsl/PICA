@@ -214,24 +214,22 @@ function groupDetail() {
       }
     },
 
+    _collectIds() {
+      const ids = [];
+      document.querySelectorAll('.group-img').forEach(el => {
+        const id = parseInt(el.getAttribute('data-img-id') || '0');
+        if (id) ids.push(id);
+      });
+      return ids;
+    },
+
     selectAll() {
+      const allIds = this._collectIds();
       if (this.notSimilarMode) {
-        this.notSimilarIds = Array.from({length: this.totalImages}, (_, i) => i + 1);
-        // Can't easily get all IDs - let user select manually
+        this.notSimilarIds = (this.notSimilarIds.length === allIds.length) ? [] : [...allIds];
         return;
       }
-      // Toggle: if all are selected, deselect all
-      if (this.keptIds.length === this.totalImages) {
-        this.keptIds = [];
-      } else {
-        // Select all
-        const allIds = [];
-        document.querySelectorAll('.group-img').forEach(el => {
-          const id = parseInt(el.getAttribute('data-img-id') || '0');
-          if (id) allIds.push(id);
-        });
-        this.keptIds = allIds;
-      }
+      this.keptIds = (this.keptIds.length === allIds.length) ? [] : [...allIds];
     },
 
     deselectAll() {
