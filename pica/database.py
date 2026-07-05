@@ -1,14 +1,17 @@
 import enum
 import json
+import logging
 from datetime import datetime
 
 from sqlalchemy import (
-    Column, Integer, String, DateTime, BigInteger, Text, Enum as SAEnum, Float, Index, create_engine
+    Column, Integer, String, DateTime, BigInteger, Text, Enum as SAEnum, Float, Index,
+    ForeignKey, create_engine, text
 )
-from sqlalchemy.orm import declarative_base, sessionmaker, Session
+from sqlalchemy.orm import declarative_base, sessionmaker, Session, relationship
 
 from pica.config import Config
 
+logger = logging.getLogger(__name__)
 Base = declarative_base()
 
 
@@ -17,6 +20,17 @@ class ImageStatus(str, enum.Enum):
     CONFIRMED = "confirmed"
     REJECTED = "rejected"
     SKIPPED = "skipped"
+
+
+class SimilarGroup(Base):
+    __tablename__ = "similar_groups"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(256))
+    phash_ref = Column(String(64), index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    images = relationship("Image", back_populates="similar_group", foreign_keys="Image.similar_group_id")
 
 
 class Image(Base):
@@ -42,9 +56,17 @@ class Image(Base):
     ai_at = Column(DateTime)
     confirmed_at = Column(DateTime, nullable=True)
 
+    phash = Column(String(64), index=True)
+    work_name = Column(String(256))
+    image_type = Column(String(64))
+    similar_group_id = Column(Integer, ForeignKey("similar_groups.id"), nullable=True, index=True)
+
     __table_args__ = (
         Index("idx_status_created", "status", "created_at"),
+        Index("idx_phash_status", "phash", "status"),
     )
+
+    similar_group = relationship("SimilarGroup", back_populates="images", foreign_keys=[similar_group_id])
 
     @property
     def suggested_category_list(self) -> list:
@@ -88,6 +110,10 @@ class Image(Base):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "ai_at": self.ai_at.isoformat() if self.ai_at else None,
             "confirmed_at": self.confirmed_at.isoformat() if self.confirmed_at else None,
+            "phash": self.phash,
+            "work_name": self.work_name,
+            "image_type": self.image_type,
+            "similar_group_id": self.similar_group_id,
         }
 
     def __repr__(self):
@@ -110,10 +136,32 @@ def get_engine(cfg: Config):
     )
 
 
+def _migrate(engine):
+    """Add new columns to existing tables (safe to call repeatedly)."""
+    additions = {
+        "images": [
+            ("phash", "VARCHAR(64)"),
+            ("work_name", "VARCHAR(256)"),
+            ("image_type", "VARCHAR(64)"),
+            ("similar_group_id", "INTEGER REFERENCES similar_groups(id)"),
+        ],
+    }
+    with engine.connect() as conn:
+        for table, columns in additions.items():
+            for col_name, col_type in columns:
+                try:
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type}"))
+                    conn.commit()
+                    logger.info("migrated: added %s.%s", table, col_name)
+                except Exception:
+                    conn.rollback()
+
+
 def init_db(cfg: Config):
     cfg.ensure_dirs()
     engine = get_engine(cfg)
     Base.metadata.create_all(engine)
+    _migrate(engine)
     return engine
 
 

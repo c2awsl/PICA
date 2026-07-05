@@ -6,11 +6,12 @@ from pathlib import Path
 from sqlalchemy import select
 
 from pica.config import Config
-from pica.database import Image, ImageStatus, get_session_factory, get_engine
+from pica.database import Image, ImageStatus, SimilarGroup, get_session_factory, get_engine
 from pica.recognizer import Recognizer
 from pica.thumbnail import generate_thumbnail
 from pica.archiver import copy_to_pending, archive_image, cleanup_pending
-from pica.utils import md5_hash, get_image_size
+from pica.utils import md5_hash, dhash, get_image_size
+from pica.grouping import assign_similar_group
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +74,8 @@ class Worker:
 
             generate_thumbnail(pending_path, file_hash, self.cfg)
 
+            ph = dhash(filepath)
+
             img = Image(
                 filename=path.name,
                 filepath=str(path),
@@ -82,16 +85,21 @@ class Worker:
                 height=height,
                 status=ImageStatus.PENDING,
                 pending_path=str(pending_path),
+                phash=ph,
             )
 
             if result:
                 img.suggested_category = str(result.get("category", []))
                 img.suggested_tags = str(result.get("tags", []))
+                img.work_name = result.get("work", "")
+                img.image_type = result.get("image_type", "")
                 img.ai_model = result.get("model")
                 img.ai_latency_ms = result.get("latency_ms")
                 img.ai_at = datetime.utcnow()
 
             session.add(img)
+            session.flush()
+            assign_similar_group(session, img)
             session.commit()
         except Exception as e:
             session.rollback()

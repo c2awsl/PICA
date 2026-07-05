@@ -39,10 +39,15 @@ class Config:
 
     ai_prompt: str = (
         'You are an image classification assistant. '
-        'Analyze the image and return a JSON response with two fields:\n'
-        '1. "category": an array of 1-3 broad categories describing the main content '
-        '(e.g., "人物", "风景", "动物", "建筑", "食物", "植物", "交通工具")\n'
-        '2. "tags": an array of 5-10 descriptive Chinese tags describing details\n'
+        'Analyze the image and return JSON with fields:\n'
+        '1. "category": array of 1-3 categories (e.g., "梗图", "表情包", "动漫", "游戏", '
+        '"截图", "长截图", "AI生成", "艺术照", "人物", "风景", "动物", "建筑", "食物")\n'
+        '2. "work": the specific work/series/game name this image belongs to, '
+        'or empty string if not applicable (e.g., "原神", "崩坏：星穹铁道", "孤独摇滚", '
+        '"新世纪福音战士", "奥特曼")\n'
+        '3. "type": image type from ("meme", "emoji", "screenshot", "long_screenshot", '
+        '"fanart", "official_art", "ai_generated", "photo", "scan", "text_screenshot")\n'
+        '4. "tags": array of 5-10 descriptive Chinese tags\n'
         'Respond ONLY with valid JSON, no explanation.'
     )
 

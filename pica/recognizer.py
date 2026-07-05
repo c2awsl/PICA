@@ -32,6 +32,8 @@ class Recognizer:
                 return {
                     "category": parsed.get("category", []),
                     "tags": parsed.get("tags", []),
+                    "work": parsed.get("work", ""),
+                    "image_type": parsed.get("type", ""),
                     "model": self.cfg.ai_model,
                     "latency_ms": round(latency, 1),
                 }

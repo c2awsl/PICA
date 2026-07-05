@@ -4,7 +4,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 from pica.database import Image, ImageStatus, get_session
@@ -26,6 +26,42 @@ def get_db(request: Request) -> Session:
 @router.get("/pending", response_class=HTMLResponse)
 async def pending_list(request: Request, db: Session = Depends(get_db)):
     cfg = request.app.state.cfg
+    group_by = request.query_params.get("group", "none")
+
+    if group_by == "sim":
+        sub = (
+            select(Image.similar_group_id, func.count(Image.id).label("cnt"))
+            .where(Image.status == ImageStatus.PENDING)
+            .group_by(Image.similar_group_id)
+            .subquery()
+        )
+        stmt = (
+            select(Image)
+            .where(Image.status == ImageStatus.PENDING)
+            .order_by(Image.similar_group_id, Image.created_at.desc())
+            .limit(200)
+        )
+        images = db.execute(stmt).scalars().all()
+
+        from collections import OrderedDict
+        groups = OrderedDict()
+        for img in images:
+            gid = img.similar_group_id or 0
+            if gid not in groups:
+                groups[gid] = []
+            groups[gid].append(img)
+
+        return request.app.state.templates.TemplateResponse(
+            "pending.html",
+            {
+                "request": request,
+                "images": images,
+                "groups": groups,
+                "categories": cfg.categories,
+                "group_by": "sim",
+            },
+        )
+
     stmt = (
         select(Image)
         .where(Image.status == ImageStatus.PENDING)
@@ -35,7 +71,7 @@ async def pending_list(request: Request, db: Session = Depends(get_db)):
     images = db.execute(stmt).scalars().all()
     return request.app.state.templates.TemplateResponse(
         "pending.html",
-        {"request": request, "images": images, "categories": cfg.categories},
+        {"request": request, "images": images, "categories": cfg.categories, "group_by": "none"},
     )
 
 
@@ -92,6 +128,39 @@ async def confirm_image(
     cleanup_pending(img.pending_path)
 
     return RedirectResponse(url="/pending", status_code=303)
+
+
+@router.post("/pending/batch-confirm")
+async def batch_confirm(request: Request, db: Session = Depends(get_db)):
+    cfg = request.app.state.cfg
+    form = await request.form()
+    image_ids = form.getlist("image_ids")
+    raw_category = form.get("category", "")
+    category = raw_category.strip() or "未分类"
+
+    count = 0
+    for img_id in image_ids:
+        img = db.get(Image, int(img_id))
+        if not img or img.status != ImageStatus.PENDING:
+            continue
+        archive_dest = archive_image(img.pending_path, img.md5_hash, category, cfg)
+        if not archive_dest:
+            continue
+        confirmed_cat = [category]
+        if img.suggested_category_list:
+            for c in img.suggested_category_list:
+                if c not in confirmed_cat:
+                    confirmed_cat.append(c)
+        img.confirmed_category = json.dumps(confirmed_cat, ensure_ascii=False)
+        img.confirmed_tags = img.suggested_tags
+        img.archive_path = str(archive_dest)
+        img.status = ImageStatus.CONFIRMED
+        img.confirmed_at = datetime.utcnow()
+        cleanup_pending(img.pending_path)
+        count += 1
+    db.commit()
+
+    return RedirectResponse(url=form.get("redirect", "/pending"), status_code=303)
 
 
 @router.post("/pending/{image_id}/reject")

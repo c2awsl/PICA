@@ -7,10 +7,11 @@ from pathlib import Path
 from sqlalchemy import select
 
 from pica.config import Config
-from pica.utils import md5_hash
+from pica.utils import md5_hash, dhash
 from pica.thumbnail import generate_thumbnail
 from pica.archiver import copy_to_pending
 from pica.database import Image, ScanStatus, get_engine, get_session_factory
+from pica.grouping import assign_similar_group
 
 logging.basicConfig(
     level=logging.INFO,
@@ -146,6 +147,7 @@ def run_scan(cfg: Config, session_factory):
                 if dest:
                     width, height = _get_size(file_path)
                     generate_thumbnail(dest, file_hash, cfg)
+                    ph = dhash(file_path)
                     img = Image(
                         filename=file_path.name,
                         filepath=str(file_path),
@@ -154,8 +156,11 @@ def run_scan(cfg: Config, session_factory):
                         width=width,
                         height=height,
                         pending_path=str(dest),
+                        phash=ph,
                     )
                     session.add(img)
+                    session.flush()
+                    assign_similar_group(session, img)
                     session.commit()
                     new_count = int(get_status(session, "new", "0"))
                     set_status(session, "new", str(new_count + 1))
