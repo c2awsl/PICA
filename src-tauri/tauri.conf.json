@@ -1,0 +1,48 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-config-schema/schema.json",
+  "productName": "PICA",
+  "version": "0.2.0",
+  "identifier": "com.pica.app",
+  "build": {
+    "frontendDist": "webview",
+    "devUrl": "http://127.0.0.1:8765",
+    "beforeDevCommand": null,
+    "beforeBuildCommand": null
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "PICA",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 800,
+        "minHeight": 600,
+        "center": true,
+        "decorations": true,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' http://127.0.0.1:*; img-src 'self' http://127.0.0.1:* data:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.tailwindcss.com; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.tailwindcss.com; font-src 'self' https://cdnjs.cloudflare.com"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "wix": null,
+      "nsis": null
+    },
+    "macOS": {
+      "minimumSystemVersion": "10.15"
+    }
+  }
+}

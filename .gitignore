@@ -26,6 +26,10 @@ archive/
 # User config
 config.json
 
+# Rust / Tauri
+src-tauri/target/
+src-tauri/webview/node_modules/
+
 # OS
 Thumbs.db
 .DS_Store
