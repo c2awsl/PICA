@@ -41,6 +41,7 @@
       <th class="py-2 px-2 text-left font-medium cursor-pointer hover:text-gray-700" @click="setSort('file_size')">大小{% if sort == 'file_size' %}<i class="fa-solid ml-0.5 text-[9px]" :class="order==='desc'?'fa-arrow-down-short-wide':'fa-arrow-up-short-wide'"></i>{% endif %}</th>
       <th class="py-2 px-2 text-left font-medium cursor-pointer hover:text-gray-700" @click="setSort('width')">尺寸{% if sort == 'width' %}<i class="fa-solid ml-0.5 text-[9px]" :class="order==='desc'?'fa-arrow-down-short-wide':'fa-arrow-up-short-wide'"></i>{% endif %}</th>
       <th class="py-2 px-2 text-left font-medium cursor-pointer hover:text-gray-700" @click="setSort('created_at')">日期{% if sort == 'created_at' %}<i class="fa-solid ml-0.5 text-[9px]" :class="order==='desc'?'fa-arrow-down-short-wide':'fa-arrow-up-short-wide'"></i>{% endif %}</th>
+      <th class="py-2 px-2 text-left font-medium cursor-pointer hover:text-gray-700" @click="setSort('ai_status')">AI{% if sort == 'ai_status' %}<i class="fa-solid ml-0.5 text-[9px]" :class="order==='desc'?'fa-arrow-down-short-wide':'fa-arrow-up-short-wide'"></i>{% endif %}</th>
       <th class="py-2 px-1 text-left font-medium">操作</th>
     </tr>
   </thead>

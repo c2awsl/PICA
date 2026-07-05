@@ -69,6 +69,7 @@ def _worker_process_file(file_path: str) -> dict | None:
         "height": height,
         "pending_path": str(dest),
         "phash": ph,
+        "ai_status": "pending",
     }
 
 
@@ -351,6 +352,7 @@ def scan_loop(cfg: Config):
         if cmd == "start":
             logger.info("start received, beginning scan")
             _set_command(session_factory, "")
+            _set_running(session_factory, "1")
             run_scan(cfg, session_factory)
             cmd_after = _poll(session_factory)
             if cmd_after != "paused":

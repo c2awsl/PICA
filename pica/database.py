@@ -44,6 +44,7 @@ class Image(Base):
     width = Column(Integer)
     height = Column(Integer)
     status = Column(SAEnum(ImageStatus), default=ImageStatus.PENDING, index=True)
+    ai_status = Column(String(16), default='pending', index=True)
     suggested_category = Column(Text)
     suggested_tags = Column(Text)
     confirmed_category = Column(Text)
@@ -101,6 +102,7 @@ class Image(Base):
             "width": self.width,
             "height": self.height,
             "status": self.status.value if self.status else None,
+            "ai_status": self.ai_status,
             "suggested_category": self.suggested_category_list,
             "suggested_tags": self.suggested_tags_list,
             "confirmed_category": self.confirmed_category_list,
@@ -144,6 +146,7 @@ def _migrate(engine):
             ("work_name", "VARCHAR(256)"),
             ("image_type", "VARCHAR(64)"),
             ("similar_group_id", "INTEGER REFERENCES similar_groups(id)"),
+            ("ai_status", "VARCHAR(16) DEFAULT 'pending'"),
         ],
     }
     with engine.connect() as conn:

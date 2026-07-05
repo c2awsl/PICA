@@ -12,8 +12,26 @@
   <td class="py-2.5 px-3 text-sm text-gray-400 font-medium">{{ (img.file_size/1024)|round(1) }} KB</td>
   <td class="py-2.5 px-3 text-sm text-gray-400">{{ img.width }}×{{ img.height }}</td>
   <td class="py-2.5 px-3 text-sm text-gray-400 whitespace-nowrap">{{ img.created_at.strftime('%Y-%m-%d %H:%M') if img.created_at else '' }}</td>
+  <td class="py-2.5 px-2">
+    <div class="flex items-center gap-1">
+      {% if img.ai_status == 'pending' %}
+      <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100/80 text-gray-500 border border-gray-200/40 font-medium">等待</span>
+      {% elif img.ai_status == 'processing' %}
+      <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50/80 text-blue-600 border border-blue-200/40 font-medium flex items-center gap-0.5"><i class="fa-solid fa-spinner fa-spin text-[9px]"></i>识别中</span>
+      {% elif img.ai_status == 'done' %}
+      <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-50/80 text-green-600 border border-green-200/40 font-medium">✓已识别</span>
+      {% elif img.ai_status == 'failed' %}
+      <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-red-50/80 text-red-600 border border-red-200/40 font-medium">✗失败</span>
+      {% endif %}
+    </div>
+  </td>
   <td class="py-2.5 px-2 whitespace-nowrap">
     <div class="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300">
+      {% if img.ai_status == 'failed' %}
+      <form action="/pending/{{ img.id }}/retry-ai" method="post" class="inline-flex items-center gap-1">
+        <button class="glass-btn glass-gray w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="重试AI识别"><i class="fa-solid fa-rotate"></i></button>
+      </form>
+      {% endif %}
       <form action="/pending/{{ img.id }}/confirm" method="post" class="inline-flex items-center gap-1">
         <input type="text" name="category" value="{{ img.suggested_category or '' }}" class="w-16 text-[11px] px-2 py-1 border border-gray-200/60 rounded-lg bg-white/60 focus:bg-white focus:border-blue-400 outline-none transition-all" placeholder="分类">
         <button class="glass-btn glass-green w-7 h-7 rounded-lg flex items-center justify-center text-[10px]">✓</button>

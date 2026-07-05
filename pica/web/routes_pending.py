@@ -48,6 +48,7 @@ async def pending_list(request: Request, db: Session = Depends(get_db)):
     q = params.get("q", "")
     sort = params.get("sort", "created_at")
     order = params.get("order", "desc")
+    ai_status_filter = params.get("ai_status", "")
 
     filters = [Image.status == ImageStatus.PENDING]
     if work:
@@ -58,6 +59,8 @@ async def pending_list(request: Request, db: Session = Depends(get_db)):
         filters.append(Image.suggested_category.like(f"%{category}%"))
     if q:
         filters.append(Image.filename.ilike(f"%{q}%"))
+    if ai_status_filter:
+        filters.append(Image.ai_status == ai_status_filter)
 
     sort_col = SORT_MAP.get(sort, Image.created_at)
     order_by = sort_col.desc() if order == "desc" else sort_col.asc()
@@ -249,3 +252,27 @@ async def reject_image(image_id: int, db: Session = Depends(get_db)):
     cleanup_pending(img.pending_path)
 
     return RedirectResponse(url="/pending", status_code=303)
+
+
+@router.post("/pending/{image_id}/retry-ai")
+async def retry_ai(request: Request, image_id: int, db: Session = Depends(get_db)):
+    img = db.get(Image, image_id)
+    if not img:
+        return JSONResponse({"success": False, "error": "not found"}, status_code=404)
+    img.ai_status = "pending"
+    db.commit()
+    ref = request.headers.get("Referer", "/pending")
+    return RedirectResponse(url=ref, status_code=303)
+
+
+@router.post("/pending/batch-retry-ai")
+async def batch_retry_ai(request: Request, db: Session = Depends(get_db)):
+    form = await request.form()
+    image_ids = form.getlist("image_ids")
+    for img_id in image_ids:
+        img = db.get(Image, int(img_id))
+        if not img:
+            continue
+        img.ai_status = "pending"
+    db.commit()
+    return RedirectResponse(url=form.get("redirect", "/pending"), status_code=303)

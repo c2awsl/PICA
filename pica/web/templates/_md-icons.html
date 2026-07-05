@@ -6,6 +6,9 @@
     <input type="checkbox" :checked="selected.includes({{ img.id }})" @change="toggleSelect({{ img.id }})" class="w-3 h-3 rounded border-white/60 text-blue-500 cursor-pointer shadow">
   </div>
   <div class="absolute top-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-all duration-300 z-10">
+    {% if img.ai_status == 'failed' %}
+    <form action="/pending/{{ img.id }}/retry-ai" method="post"><button class="glass-btn glass-gray w-6 h-6 rounded-full flex items-center justify-center text-[9px] shadow" title="重试AI识别"><i class="fa-solid fa-rotate"></i></button></form>
+    {% endif %}
     <form action="/pending/{{ img.id }}/confirm" method="post"><button class="glass-btn glass-green w-6 h-6 rounded-full flex items-center justify-center text-[9px] shadow">✓</button></form>
     <form action="/pending/{{ img.id }}/reject" method="post"><button class="glass-btn glass-red w-6 h-6 rounded-full flex items-center justify-center text-[9px] shadow">✕</button></form>
   </div>

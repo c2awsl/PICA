@@ -211,6 +211,9 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
       <button @click="submitBatch('/pending/batch-reject')" class="h-9 px-5 rounded-xl glass-red font-medium text-sm" :disabled="selected.length===0" :style="selected.length===0?'opacity:0.4;pointer-events:none':''">
         <i class="fa-solid fa-xmark mr-1.5"></i>驳回
       </button>
+      <button @click="submitBatch('/pending/batch-retry-ai')" class="h-9 px-5 rounded-xl glass-gray font-medium text-sm" :disabled="selected.length===0" :style="selected.length===0?'opacity:0.4;pointer-events:none':''">
+        <i class="fa-solid fa-rotate mr-1.5"></i>重试 AI
+      </button>
     </div>
   </template>
 
@@ -239,6 +242,16 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
         <div class="flex items-center gap-2.5">
           <label class="text-gray-500 text-xs font-medium">分类</label>
           <input type="text" name="category" value="{{ request.query_params.get('category','') }}" placeholder="关键词" class="h-9 px-3 text-sm border border-gray-200/60 rounded-xl bg-white/70 focus:bg-white focus:border-blue-400 outline-none w-28 transition-all backdrop-blur-sm">
+        </div>
+        <div class="flex items-center gap-2.5">
+          <label class="text-gray-500 text-xs font-medium">AI</label>
+          <select name="ai_status" class="h-9 px-3 text-sm border border-gray-200/60 rounded-xl bg-white/70 focus:bg-white focus:border-blue-400 outline-none transition-all backdrop-blur-sm">
+            <option value="">全部</option>
+            <option value="pending" {{ 'selected' if request.query_params.get('ai_status','') == 'pending' else '' }}>等待识别</option>
+            <option value="processing" {{ 'selected' if request.query_params.get('ai_status','') == 'processing' else '' }}>识别中</option>
+            <option value="done" {{ 'selected' if request.query_params.get('ai_status','') == 'done' else '' }}>已完成</option>
+            <option value="failed" {{ 'selected' if request.query_params.get('ai_status','') == 'failed' else '' }}>识别失败</option>
+          </select>
         </div>
         <button type="submit" class="h-9 px-5 rounded-xl glass-blue font-medium text-sm"><i class="fa-solid fa-check mr-1.5"></i>应用</button>
         <a href="/pending" class="h-9 px-5 rounded-xl glass-gray font-medium text-sm flex items-center"><i class="fa-solid fa-rotate-left mr-1.5"></i>清除</a>
@@ -342,16 +355,47 @@ function pendingApp() {
     get viewLabel() { return this.views.find(v => v.id === this.view)?.label || '视图'; },
     get viewIcon() { return this.views.find(v => v.id === this.view)?.icon || 'fa-image'; },
     get sortLabel() { return this.sorts.find(s => s.id === this.sort)?.label || '排序'; },
-    get hasActiveFilter() { return this.q || {{ 'true' if request.query_params.get('work','') or request.query_params.get('type','') or request.query_params.get('category','') else 'false' }}; },
+    get hasActiveFilter() { return this.q || {{ 'true' if request.query_params.get('work','') or request.query_params.get('type','') or request.query_params.get('category','') or request.query_params.get('ai_status','') else 'false' }}; },
 
     init() {
-      const saved = sessionStorage.getItem('pendingSelectionMode');
-      if (saved === 'true') this.selectionMode = true;
+      const savedSel = sessionStorage.getItem('pendingSelectionMode');
+      if (savedSel === 'true') this.selectionMode = true;
+
+      // Restore last-used view from localStorage when no explicit view param
+      const url = new URL(window.location);
+      if (!url.searchParams.has('view')) {
+        const savedView = localStorage.getItem('pica_view');
+        if (savedView && this.views.some(v => v.id === savedView)) {
+          this.view = savedView;
+        }
+      }
+      if (!url.searchParams.has('sort')) {
+        const savedSort = localStorage.getItem('pica_sort');
+        if (savedSort) this.sort = savedSort;
+      }
+      if (!url.searchParams.has('order')) {
+        const savedOrder = localStorage.getItem('pica_order');
+        if (savedOrder) this.order = savedOrder;
+      }
     },
 
-    switchView(v) { this.view = v; const url = new URL(window.location); url.searchParams.set('view', v); window.location.href = url; },
-    setSort(s) { this.sort = s; this.applyParams(); },
-    toggleOrder() { this.order = this.order === 'desc' ? 'asc' : 'desc'; this.applyParams(); },
+    switchView(v) {
+      localStorage.setItem('pica_view', v);
+      this.view = v;
+      const url = new URL(window.location);
+      url.searchParams.set('view', v);
+      window.location.href = url;
+    },
+    setSort(s) {
+      localStorage.setItem('pica_sort', s);
+      this.sort = s;
+      this.applyParams();
+    },
+    toggleOrder() {
+      this.order = this.order === 'desc' ? 'asc' : 'desc';
+      localStorage.setItem('pica_order', this.order);
+      this.applyParams();
+    },
 
     applyParams() {
       const url = new URL(window.location);

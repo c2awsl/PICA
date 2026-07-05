@@ -96,7 +96,9 @@ class Worker:
                 img.ai_model = result.get("model")
                 img.ai_latency_ms = result.get("latency_ms")
                 img.ai_at = datetime.utcnow()
-
+                img.ai_status = "done"
+            else:
+                img.ai_status = "failed"
             session.add(img)
             session.flush()
             assign_similar_group(session, img)

@@ -14,6 +14,7 @@ from pica.database import ScanStatus, get_engine, get_session_factory, init_db
 from pica.process import ScannerProcess
 from pica.watcher import FileWatcher
 from pica.worker import Worker
+from pica.ai_processor import AiProcessor
 from pica.web.app import create_app
 
 logging.basicConfig(
@@ -65,6 +66,9 @@ def run_web(args):
 
     watcher = FileWatcher(cfg, on_new_file)
 
+    ai_processor = AiProcessor(cfg)
+    ai_processor.start()
+
     cfg_origin = cfg.config_file or Path("config.json")
     app = create_app(cfg, worker=worker, cfg_file_path=cfg_origin)
 
@@ -88,6 +92,7 @@ def run_web(args):
             reload_includes=["*.py", "*.html", "config.json"] if args.reload else None,
         )
     finally:
+        ai_processor.stop()
         watcher.stop()
         logger.info("web shutdown complete")
 
@@ -124,6 +129,9 @@ def run_all(args):
 
     watcher = FileWatcher(cfg, on_new_file)
 
+    ai_processor = AiProcessor(cfg)
+    ai_processor.start()
+
     cfg_origin = cfg.config_file or Path("config.json")
     app = create_app(cfg, worker=worker, cfg_file_path=cfg_origin)
 
@@ -147,6 +155,7 @@ def run_all(args):
             reload_includes=["*.py", "*.html", "config.json"] if args.reload else None,
         )
     finally:
+        ai_processor.stop()
         watcher.stop()
         cleanup()
         logger.info("all shutdown complete")
