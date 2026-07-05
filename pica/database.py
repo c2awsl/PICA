@@ -94,6 +94,14 @@ class Image(Base):
         return f"<Image(id={self.id}, filename={self.filename}, status={self.status})>"
 
 
+class ScanStatus(Base):
+    __tablename__ = "scan_status"
+
+    key = Column(String(64), primary_key=True)
+    value = Column(Text, default="")
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 def get_engine(cfg: Config):
     return create_engine(
         f"sqlite:///{cfg.db_path}",

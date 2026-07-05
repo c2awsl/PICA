@@ -13,6 +13,7 @@
         <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
             <button class="btn btn-primary" @click="startScan" x-show="!running">开始扫描</button>
             <button class="btn btn-danger" @click="stopScan" x-show="running">停止扫描</button>
+            <button class="btn btn-danger" @click="exitScanner" style="background:#6c757d;border-color:#6c757d;">退出扫描程序</button>
             <span x-show="running" style="color:#e65100;font-size:14px;">
                 <span class="spinner"></span> 扫描中...
             </span>
@@ -103,6 +104,10 @@ function scanner() {
 
         async stopScan() {
             await fetch("/scan/stop", { method: "POST" });
+        },
+
+        async exitScanner() {
+            await fetch("/scan/exit", { method: "POST" });
         }
     }
 }
