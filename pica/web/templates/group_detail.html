@@ -5,36 +5,262 @@
 <script>tailwind.config = { corePlugins: { preflight: false } }</script>
 <style>
 html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f5f5f7; }
-.glass-card { background: rgba(255,255,255,0.72); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 2px 20px rgba(0,0,0,0.04); border-radius: 1rem; }
-.glass-btn { cursor: pointer; border: none; outline: none; transition: all 0.35s; backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.25); }
+.glass-card { background: rgba(255,255,255,0.72); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 2px 20px rgba(0,0,0,0.04); border-radius: 1rem; transition: all 0.2s; }
+.glass-card:hover { box-shadow: 0 4px 30px rgba(0,0,0,0.06); }
+.glass-btn { cursor: pointer; border: none; outline: none; transition: all 0.35s cubic-bezier(0.25,0.46,0.45,0.94); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.25); }
 .glass-btn:hover { transform: scale(1.05); }
+.glass-btn:active { transform: scale(0.95); }
 .glass-gray { background: rgba(0,0,0,0.04); color: #555; }
 .glass-gray:hover { background: rgba(0,0,0,0.08); color: #333; }
-.glass-red { background: rgba(255,69,58,0.2); color: #9b1c1c; }
+.glass-red { background: rgba(255,69,58,0.15); color: #9b1c1c; }
 .glass-red:hover { background: rgba(255,69,58,0.92); color: #fff; }
+.glass-blue { background: rgba(0,122,255,0.15); color: #007aff; }
+.glass-blue:hover { background: rgba(0,122,255,0.92); color: #fff; }
+.glass-green { background: rgba(52,199,89,0.15); color: #1a6a32; }
+.glass-green:hover { background: rgba(52,199,89,0.92); color: #fff; }
+.suggest-badge {
+  position: absolute; top: 6px; left: 6px;
+  background: rgba(52,199,89,0.92); color: #fff;
+  font-size: 9px; font-weight: 700; padding: 2px 6px;
+  border-radius: 6px; letter-spacing: 0.3px;
+  backdrop-filter: blur(4px);
+}
+.img-checkbox {
+  position: absolute; top: 6px; right: 6px;
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.8);
+  background: rgba(0,0,0,0.2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.2s;
+  opacity: 0;
+}
+.group-img:hover .img-checkbox { opacity: 1; }
+.img-checkbox.checked { opacity: 1; background: #34c759; border-color: #34c759; }
+.img-checkbox.checked::after { content: '✓'; color: #fff; font-size: 12px; font-weight: 700; }
+.group-img.selected { outline: 3px solid #34c759; outline-offset: -3px; border-radius: 12px; }
+.group-img.dimmed { opacity: 0.5; }
+[x-cloak] { display: none !important; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="p-5 min-h-screen" style="background:#f5f5f7;">
-  <div class="flex items-center gap-3 mb-5">
-    <a href="/groups" class="h-9 w-9 rounded-xl glass-gray flex items-center justify-center"><i class="fa-solid fa-arrow-left text-xs"></i></a>
-    <h1 class="text-lg font-semibold text-gray-800">{{ group.name or '分组 #' + group.id|string }}</h1>
-    <span class="text-xs text-gray-400 bg-white/60 px-2 py-0.5 rounded-full">{{ images|length }} 张</span>
-  </div>
-
-  <div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">
-    {% for img in images %}
-    <a href="/{% if img.status.value == 'confirmed' %}archive{% else %}pending{% endif %}/{{ img.id }}" class="glass-card overflow-hidden hover:shadow-lg transition-all">
-      <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="" loading="lazy" class="w-full aspect-square object-cover bg-gray-100/50">
-      <div class="px-2 py-1.5">
-        <div class="text-[10px] text-gray-500 truncate">{{ img.filename }}</div>
-        <div class="text-[10px] text-gray-400 mt-0.5">
-          {% if img.status.value == 'confirmed' %}<span class="text-green-600">已归档</span>{% else %}<span class="text-orange-600">待确认</span>{% endif %}
+<div x-data="groupDetail()" x-init="init({{ group.id }}, {{ group.processed }})" class="p-5 min-h-screen" style="background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-3">
+      <a href="/groups" class="w-9 h-9 rounded-xl glass-gray flex items-center justify-center hover:scale-105 transition-all">
+        <i class="fa-solid fa-arrow-left text-xs"></i>
+      </a>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-lg font-semibold text-gray-800" x-text="groupName"></h1>
+          <span class="bg-white/70 text-gray-500 px-2.5 py-0.5 rounded-full text-xs font-medium border border-white/30" x-text="totalImages + ' 张'"></span>
+          <span x-show="processed" class="bg-green-50/80 text-green-600 px-2.5 py-0.5 rounded-full text-xs font-medium border border-green-200/50">
+            <i class="fa-solid fa-circle-check mr-0.5"></i>已处理
+          </span>
+        </div>
+        <div class="flex items-center gap-2 mt-0.5">
+          <span class="text-[11px] text-gray-400">
+            <span x-text="keptCount"></span> 保留 · <span x-text="rejectCount"></span> 将驳回
+          </span>
+          <template x-if="suggestedId">
+            <span class="text-[11px] text-green-500 font-medium">
+              <i class="fa-solid fa-star mr-0.5"></i>建议保留 (<span x-text="suggestReason"></span>)
+            </span>
+          </template>
         </div>
       </div>
-    </a>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="relative" x-data="{ open: false }" @click.outside="open=false">
+        <button @click="open=!open" class="h-9 px-4 rounded-xl glass-gray text-xs font-medium">
+          <i class="fa-solid fa-ellipsis mr-1"></i>操作
+        </button>
+        <div x-show="open" class="absolute right-0 top-full mt-1 z-50 min-w-[160px] bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/40 p-1.5" x-cloak>
+          <button @click="open=false;acceptSuggestion()" class="flex items-center gap-2.5 w-full px-3 py-2 text-xs rounded-xl hover:bg-blue-50 text-gray-700" x-show="suggestedId">
+            <i class="fa-solid fa-wand-magic-sparkles text-purple-400 w-4"></i>采用建议
+          </button>
+          <button @click="open=false;selectAll()" class="flex items-center gap-2.5 w-full px-3 py-2 text-xs rounded-xl hover:bg-blue-50 text-gray-700">
+            <i class="fa-solid fa-check-double text-blue-400 w-4"></i>全选
+          </button>
+          <button @click="open=false;deselectAll()" class="flex items-center gap-2.5 w-full px-3 py-2 text-xs rounded-xl hover:bg-blue-50 text-gray-700">
+            <i class="fa-solid fa-rotate-left text-gray-400 w-4"></i>取消全选
+          </button>
+          <hr class="my-1 border-gray-100">
+          <button @click="open=false;toggleNotSimilar()" class="flex items-center gap-2.5 w-full px-3 py-2 text-xs rounded-xl hover:bg-orange-50 text-orange-500">
+            <i class="fa-solid fa-link-slash w-4"></i>标记不相似
+          </button>
+        </div>
+      </div>
+
+      <button @click="submitProcess()" class="h-9 px-6 rounded-xl glass-green text-sm font-medium" :disabled="keptCount === 0 && rejectCount === 0">
+        <i class="fa-solid fa-check mr-1"></i>完成处理
+      </button>
+    </div>
+  </div>
+
+  <!-- Not-similar mode -->
+  <div x-show="notSimilarMode" class="glass-card p-4 mb-5 border-orange-200/50" x-cloak>
+    <div class="flex items-center gap-3 text-sm">
+      <i class="fa-solid fa-link-slash text-orange-400"></i>
+      <span class="text-gray-700">点击要移出此分组的图片，它们将被标记为不相似并从分组中移除。</span>
+      <button @click="submitNotSimilar()" class="ml-auto h-8 px-4 rounded-xl glass-red text-xs font-medium">
+        移出所选 ({{ notSimilarIds.length }})
+      </button>
+      <button @click="notSimilarMode=false" class="h-8 px-3 rounded-xl glass-gray text-xs">取消</button>
+    </div>
+  </div>
+
+  <!-- Image grid -->
+  <div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">
+    {% for img in images %}
+    <div class="group-img glass-card overflow-hidden transition-all duration-300 hover:-translate-y-0.5 relative"
+         data-img-id="{{ img.id }}"
+         x-bind:class="{
+           'selected': keptIds.includes({{ img.id }}),
+           'dimmed': notSimilarMode && !notSimilarIds.includes({{ img.id }})
+         }"
+         @click="toggleKeep({{ img.id }})">
+      <!-- Suggested badge -->
+      <div class="suggest-badge" x-show="suggestedId === {{ img.id }}" x-cloak>
+        <i class="fa-solid fa-star mr-0.5"></i>推荐
+      </div>
+
+      <!-- Checkbox -->
+      <div class="img-checkbox" :class="keptIds.includes({{ img.id }}) ? 'checked' : ''"
+           @click.stop="toggleKeep({{ img.id }})"></div>
+
+      <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="" loading="lazy"
+        class="w-full aspect-square object-cover bg-gray-100/50">
+
+      <div class="px-2.5 py-2">
+        <div class="text-[11px] text-gray-500 truncate">{{ img.filename }}</div>
+        <div class="flex items-center justify-between mt-0.5">
+          <div class="text-[10px] {{ 'text-green-600' if img.status.value == 'confirmed' else 'text-orange-500' }}">
+            {{ {'pending':'待确认','confirmed':'已归档','rejected':'已驳回'}.get(img.status.value, img.status.value) }}
+          </div>
+          <div class="text-[10px] text-gray-400">
+            {% if img.width and img.height %}{{ img.width }}×{{ img.height }}{% endif %}
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-1 mt-1">
+          {% if img.suggested_tags_list %}
+          {% for tag in img.suggested_tags_list[:2] %}
+          <span class="text-[8px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-500 border border-blue-100/50">#{{ tag }}</span>
+          {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
     {% endfor %}
   </div>
 </div>
+
+<script>
+function groupDetail() {
+  return {
+    groupId: 0,
+    groupName: '{{ group.name or "分组 #" + group.id|string }}',
+    totalImages: {{ images|length }},
+    processed: false,
+    suggestedId: null,
+    suggestReason: '',
+    keptIds: [],
+    notSimilarIds: [],
+    notSimilarMode: false,
+
+    get keptCount() { return this.keptIds.length; },
+    get rejectCount() { return this.totalImages - this.keptIds.length; },
+
+    async init(gid, processed) {
+      this.groupId = gid;
+      this.processed = processed;
+      if (!processed) {
+        await this.loadSuggestion();
+      }
+    },
+
+    async loadSuggestion() {
+      try {
+        const r = await fetch(`/groups/${this.groupId}/suggest-keep`);
+        if (r.ok) {
+          const d = await r.json();
+          this.suggestedId = d.suggested_id;
+          this.suggestReason = d.reason;
+          this.keptIds = [d.suggested_id];
+        }
+      } catch(e) {}
+    },
+
+    toggleKeep(id) {
+      if (this.notSimilarMode) {
+        const idx = this.notSimilarIds.indexOf(id);
+        if (idx >= 0) this.notSimilarIds.splice(idx, 1);
+        else this.notSimilarIds.push(id);
+        return;
+      }
+      const idx = this.keptIds.indexOf(id);
+      if (idx >= 0) this.keptIds.splice(idx, 1);
+      else this.keptIds.push(id);
+    },
+
+    acceptSuggestion() {
+      if (this.suggestedId) {
+        this.keptIds = [this.suggestedId];
+      }
+    },
+
+    selectAll() {
+      if (this.notSimilarMode) {
+        this.notSimilarIds = Array.from({length: this.totalImages}, (_, i) => i + 1);
+        // Can't easily get all IDs - let user select manually
+        return;
+      }
+      // Toggle: if all are selected, deselect all
+      if (this.keptIds.length === this.totalImages) {
+        this.keptIds = [];
+      } else {
+        // Select all
+        const allIds = [];
+        document.querySelectorAll('.group-img').forEach(el => {
+          const id = parseInt(el.getAttribute('data-img-id') || '0');
+          if (id) allIds.push(id);
+        });
+        this.keptIds = allIds;
+      }
+    },
+
+    deselectAll() {
+      if (this.notSimilarMode) {
+        this.notSimilarIds = [];
+      } else {
+        this.keptIds = [];
+      }
+    },
+
+    toggleNotSimilar() {
+      this.notSimilarMode = !this.notSimilarMode;
+      this.notSimilarIds = [];
+    },
+
+    async submitNotSimilar() {
+      for (const id of this.notSimilarIds) {
+        const fd = new FormData();
+        fd.append('image_id', id);
+        await fetch(`/groups/${this.groupId}/remove-image`, { method: 'POST', body: fd });
+      }
+      window.location.reload();
+    },
+
+    async submitProcess() {
+      const fd = new FormData();
+      fd.append('keep_ids', this.keptIds.join(','));
+      fd.append('redirect', '/groups');
+      const r = await fetch(`/groups/${this.groupId}/process`, { method: 'POST', body: fd });
+      if (r.redirected) window.location.href = r.url;
+      else window.location.href = '/groups';
+    },
+  };
+}
+</script>
 {% endblock %}

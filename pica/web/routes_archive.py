@@ -43,6 +43,7 @@ async def archive_list(
             | Image.confirmed_category.ilike(f"%{q}%")
             | Image.confirmed_tags.ilike(f"%{q}%")
             | Image.work_name.ilike(f"%{q}%")
+            | Image.extracted_text.ilike(f"%{q}%")
         )
 
     total = db.execute(select(func.count()).select_from(base.subquery())).scalar() or 0

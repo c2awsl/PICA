@@ -48,6 +48,8 @@ class Config:
         '3. "type": image type from ("meme", "emoji", "screenshot", "long_screenshot", '
         '"fanart", "official_art", "ai_generated", "photo", "scan", "text_screenshot")\n'
         '4. "tags": array of 5-10 descriptive Chinese tags\n'
+        '5. "has_text": boolean, true if the image contains any visible text/characters\n'
+        '6. "extracted_text": string, the text content visible in the image, or empty string if no text\n'
         'Respond ONLY with valid JSON, no explanation.'
     )
 

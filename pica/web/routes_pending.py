@@ -7,7 +7,9 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
-from pica.database import Image, ImageStatus
+from pica.database import (
+    Category, Image, ImageCategory, ImageStatus, ImageTag, Tag,
+)
 from pica.archiver import archive_image, cleanup_pending
 
 router = APIRouter()
@@ -70,6 +72,103 @@ def _extract_all_tags(db: Session) -> list:
     return sorted(all_tags)
 
 
+@router.get("/pending/overview")
+async def pending_overview(request: Request, db: Session = Depends(get_db)):
+    """Return category/tag distribution for browse-first UI."""
+    # Category breakdown (using confirmed_categories, fallback to suggested)
+    cat_counts = []
+    cats = db.query(Category).order_by(Category.sort_order, Category.name).all()
+    for cat in cats:
+        total = db.query(func.count(ImageCategory.id)).filter(
+            ImageCategory.category_id == cat.id,
+        ).join(Image, ImageCategory.image_id == Image.id).filter(
+            Image.status == ImageStatus.PENDING
+        ).scalar() or 0
+        if total > 0:
+            cat_counts.append({
+                "id": cat.id,
+                "name": cat.name,
+                "color": cat.color,
+                "total": total,
+                "parent_id": cat.parent_id,
+            })
+
+    # Also collect categories from suggested_category JSON for images not yet linked
+    from sqlalchemy import text
+    rows = db.execute(text("""
+        SELECT DISTINCT json_each.value as cat_name
+        FROM images, json_each(images.suggested_category)
+        WHERE images.status = 'pending' AND images.suggested_category IS NOT NULL
+    """)).scalars().all()
+    existing_names = {c["name"] for c in cat_counts}
+    for name in rows:
+        if name not in existing_names:
+            cat_counts.append({
+                "id": 0, "name": name, "color": "#8E8E93",
+                "total": None, "parent_id": None,
+            })
+
+    # Tag breakdown
+    tag_counts = []
+    tags = db.query(Tag).order_by(Tag.name).all()
+    for tag in tags:
+        total = db.query(func.count(ImageTag.id)).filter(
+            ImageTag.tag_id == tag.id,
+        ).join(Image, ImageTag.image_id == Image.id).filter(
+            Image.status == ImageStatus.PENDING
+        ).scalar() or 0
+        if total > 0:
+            tag_counts.append({
+                "id": tag.id, "name": tag.name,
+                "color": tag.color, "total": total,
+            })
+
+    # Work name breakdown
+    work_counts = []
+    work_rows = db.execute(
+        select(Image.work_name, func.count(Image.id))
+        .where(Image.status == ImageStatus.PENDING, Image.work_name.isnot(None), Image.work_name != "")
+        .group_by(Image.work_name)
+        .order_by(func.count(Image.id).desc())
+        .limit(20)
+    ).all()
+    for name, cnt in work_rows:
+        work_counts.append({"name": name, "total": cnt})
+
+    # Type breakdown
+    type_counts = []
+    type_rows = db.execute(
+        select(Image.image_type, func.count(Image.id))
+        .where(Image.status == ImageStatus.PENDING, Image.image_type.isnot(None), Image.image_type != "")
+        .group_by(Image.image_type)
+        .order_by(func.count(Image.id).desc())
+    ).all()
+    for name, cnt in type_rows:
+        type_counts.append({"name": name, "total": cnt})
+
+    # AI status breakdown
+    ai_status_counts = []
+    for st in ["pending", "processing", "done", "failed"]:
+        cnt = db.query(func.count(Image.id)).filter(
+            Image.status == ImageStatus.PENDING, Image.ai_status == st
+        ).scalar() or 0
+        if cnt > 0:
+            ai_status_counts.append({"name": st, "total": cnt})
+
+    total_pending = db.query(func.count(Image.id)).filter(
+        Image.status == ImageStatus.PENDING
+    ).scalar() or 0
+
+    return JSONResponse({
+        "total_pending": total_pending,
+        "categories": cat_counts,
+        "tags": tag_counts,
+        "works": work_counts,
+        "types": type_counts,
+        "ai_statuses": ai_status_counts,
+    })
+
+
 @router.get("/", response_class=HTMLResponse)
 @router.get("/pending", response_class=HTMLResponse)
 async def pending_list(request: Request, db: Session = Depends(get_db)):
@@ -85,6 +184,7 @@ async def pending_list(request: Request, db: Session = Depends(get_db)):
     sort = params.get("sort", "created_at")
     order = params.get("order", "desc")
     ai_status_filter = params.get("ai_status", "")
+    has_text = params.get("has_text", "")
 
     filters = [Image.status == ImageStatus.PENDING]
     if work:
@@ -97,6 +197,8 @@ async def pending_list(request: Request, db: Session = Depends(get_db)):
         filters.append(Image.filename.ilike(f"%{q}%"))
     if ai_status_filter:
         filters.append(Image.ai_status == ai_status_filter)
+    if has_text == "1":
+        filters.append(Image.has_text == 1)
 
     sort_col = SORT_MAP.get(sort, Image.created_at)
     order_by = sort_col.desc() if order == "desc" else sort_col.asc()
@@ -214,15 +316,27 @@ async def edit_pending_image(request: Request, image_id: int, db: Session = Depe
     work = form.get("work", "")
     img_type = form.get("image_type", "")
     if category:
-        img.suggested_category = json.dumps(
-            [c.strip() for c in category.split(",") if c.strip()],
-            ensure_ascii=False,
-        )
+        cat_list = [c.strip() for c in category.split(",") if c.strip()]
+        img.suggested_category = json.dumps(cat_list, ensure_ascii=False)
+        db.query(ImageCategory).filter_by(image_id=img.id, source="suggested").delete()
+        for name in cat_list:
+            cat = db.query(Category).filter_by(name=name).first()
+            if not cat:
+                cat = Category(name=name)
+                db.add(cat)
+                db.flush()
+            db.add(ImageCategory(image_id=img.id, category_id=cat.id, source="suggested"))
     if tags:
-        img.suggested_tags = json.dumps(
-            [t.strip() for t in tags.split(",") if t.strip()],
-            ensure_ascii=False,
-        )
+        tag_list = [t.strip() for t in tags.split(",") if t.strip()]
+        img.suggested_tags = json.dumps(tag_list, ensure_ascii=False)
+        db.query(ImageTag).filter_by(image_id=img.id, source="suggested").delete()
+        for name in tag_list:
+            tag = db.query(Tag).filter_by(name=name).first()
+            if not tag:
+                tag = Tag(name=name)
+                db.add(tag)
+                db.flush()
+            db.add(ImageTag(image_id=img.id, tag_id=tag.id, source="suggested"))
     if work:
         img.work_name = work
     if img_type:
@@ -275,6 +389,25 @@ async def confirm_image(
     img.archive_path = str(archive_dest)
     img.status = ImageStatus.CONFIRMED
     img.confirmed_at = datetime.utcnow()
+
+    # Write to new junction tables
+    db.query(ImageCategory).filter_by(image_id=img.id, source="confirmed").delete()
+    db.query(ImageTag).filter_by(image_id=img.id, source="confirmed").delete()
+    for name in confirmed_category:
+        cat = db.query(Category).filter_by(name=name).first()
+        if not cat:
+            cat = Category(name=name)
+            db.add(cat)
+            db.flush()
+        db.add(ImageCategory(image_id=img.id, category_id=cat.id, source="confirmed"))
+    for name in confirmed_tags:
+        tag = db.query(Tag).filter_by(name=name).first()
+        if not tag:
+            tag = Tag(name=name)
+            db.add(tag)
+            db.flush()
+        db.add(ImageTag(image_id=img.id, tag_id=tag.id, source="confirmed"))
+
     db.commit()
 
     cleanup_pending(img.pending_path)
@@ -309,6 +442,26 @@ async def batch_confirm(request: Request, db: Session = Depends(get_db)):
         img.archive_path = str(archive_dest)
         img.status = ImageStatus.CONFIRMED
         img.confirmed_at = datetime.utcnow()
+
+        # Write to junction tables
+        db.query(ImageCategory).filter_by(image_id=img.id, source="confirmed").delete()
+        db.query(ImageTag).filter_by(image_id=img.id, source="confirmed").delete()
+        for name in confirmed_cat:
+            cat = db.query(Category).filter_by(name=name).first()
+            if not cat:
+                cat = Category(name=name)
+                db.add(cat)
+                db.flush()
+            db.add(ImageCategory(image_id=img.id, category_id=cat.id, source="confirmed"))
+        suggested_tags = img.suggested_tags_list
+        for name in suggested_tags:
+            tag = db.query(Tag).filter_by(name=name).first()
+            if not tag:
+                tag = Tag(name=name)
+                db.add(tag)
+                db.flush()
+            db.add(ImageTag(image_id=img.id, tag_id=tag.id, source="confirmed"))
+
         cleanup_pending(img.pending_path)
         count += 1
     db.commit()

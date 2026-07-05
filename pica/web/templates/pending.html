@@ -119,6 +119,10 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
     <div class="flex items-center gap-0.5 text-gray-400 text-xs">
       <button onclick="window.history.back()" class="w-7 h-7 rounded-full hover:bg-black/5 transition-colors flex items-center justify-center"><i class="fa-solid fa-chevron-left"></i></button>
       <button onclick="window.history.forward()" class="w-7 h-7 rounded-full hover:bg-black/5 transition-colors flex items-center justify-center"><i class="fa-solid fa-chevron-right"></i></button>
+      <button @click="mode = mode === 'overview' ? 'grid' : 'overview'" class="toolbar-btn ml-1" :class="mode === 'overview' ? 'toolbar-btn-active' : ''">
+        <i class="fa-solid" :class="mode === 'overview' ? 'fa-compass' : 'fa-th-large'"></i>
+        <span class="hidden sm:inline" x-text="mode === 'overview' ? '浏览' : '列表'"></span>
+      </button>
     </div>
 
     <div class="flex-1 flex justify-center max-w-lg mx-auto">
@@ -287,8 +291,106 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
     {% endif %}
   </div>
 
-  <!-- ═══ Content Area ═══ -->
-  <div class="p-5" id="content-area">
+  <!-- ═══ Overview Mode ═══ -->
+  <div x-show="mode === 'overview'" class="p-5" x-cloak>
+    <div x-show="overviewLoading" class="flex items-center justify-center py-16 text-gray-400">
+      <i class="fa-solid fa-spinner fa-spin text-2xl"></i>
+    </div>
+    <template x-if="!overviewLoading && overview">
+      <div class="space-y-8">
+        <!-- Stats bar -->
+        <div class="flex items-center gap-4 text-sm">
+          <span class="font-semibold text-gray-800 text-base">待确认概览</span>
+          <span class="bg-blue-50/80 text-blue-600 px-3 py-1 rounded-full text-xs font-medium border border-blue-200/50">
+            <span x-text="overview.total_pending"></span> 张待处理
+          </span>
+          <button @click="mode='grid'" class="ml-auto glass-blue px-4 py-1.5 rounded-full text-xs font-medium">
+            <i class="fa-solid fa-list mr-1"></i>全部列表
+          </button>
+        </div>
+
+        <!-- Category cards -->
+        <template x-if="overview.categories && overview.categories.length">
+          <div>
+            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">按分类浏览</h3>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              <template x-for="cat in overview.categories" :key="cat.name">
+                <button @click="switchToGrid({category: cat.name})"
+                  class="glass-card rounded-2xl p-4 text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer group">
+                  <div class="w-8 h-8 rounded-xl flex items-center justify-center mb-2 text-sm"
+                    :style="'background:' + (cat.color || '#007AFF') + '22; color:' + (cat.color || '#007AFF')">
+                    <i class="fa-solid fa-folder"></i>
+                  </div>
+                  <div class="text-sm font-semibold text-gray-800 group-hover:text-blue-600 transition-colors truncate" x-text="cat.name"></div>
+                  <div class="text-xs text-gray-400 mt-0.5">
+                    <span x-text="cat.total !== null ? cat.total + ' 张' : '?'"></span>
+                  </div>
+                </button>
+              </template>
+            </div>
+          </div>
+        </template>
+
+        <!-- Work cards -->
+        <template x-if="overview.works && overview.works.length">
+          <div>
+            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">按作品浏览</h3>
+            <div class="flex flex-wrap gap-2">
+              <template x-for="w in overview.works" :key="w.name">
+                <button @click="switchToGrid({work: w.name})"
+                  class="glass-card rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 cursor-pointer">
+                  <span class="text-gray-800" x-text="w.name"></span>
+                  <span class="text-gray-400 ml-1.5 text-xs" x-text="w.total + '张'"></span>
+                </button>
+              </template>
+            </div>
+          </div>
+        </template>
+
+        <!-- Tag chips -->
+        <template x-if="overview.tags && overview.tags.length">
+          <div>
+            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">按标签浏览</h3>
+            <div class="flex flex-wrap gap-2">
+              <template x-for="tag in overview.tags" :key="tag.name">
+                <button @click="switchToGrid({q: tag.name})"
+                  class="tag-chip text-sm px-3 py-1.5 transition-all duration-300 hover:shadow-md cursor-pointer"
+                  :style="'background:' + (tag.color || '#007AFF') + '18; color:' + (tag.color || '#007AFF')">
+                  <span>#</span><span x-text="tag.name"></span>
+                  <span class="ml-1 opacity-60" x-text="tag.total"></span>
+                </button>
+              </template>
+            </div>
+          </div>
+        </template>
+
+        <!-- AI status -->
+        <template x-if="overview.ai_statuses && overview.ai_statuses.length">
+          <div>
+            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">按 AI 状态</h3>
+            <div class="flex flex-wrap gap-2">
+              <template x-for="st in overview.ai_statuses" :key="st.name">
+                <button @click="switchToGrid({ai_status: st.name})"
+                  class="glass-card rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 hover:shadow-md cursor-pointer">
+                  <span x-text="{'pending':'⏳ 待识别','processing':'🔄 识别中','done':'✅ 已完成','failed':'❌ 失败'}[st.name] || st.name"></span>
+                  <span class="text-gray-400 ml-1.5 text-xs" x-text="st.total + '张'"></span>
+                </button>
+              </template>
+            </div>
+          </div>
+        </template>
+      </div>
+    </template>
+    <template x-if="!overviewLoading && !overview">
+      <div class="flex flex-col items-center justify-center py-16 text-gray-400">
+        <i class="fa-regular fa-image text-5xl mb-4 opacity-40"></i>
+        <p class="text-base font-medium text-gray-500">暂无待确认图片</p>
+      </div>
+    </template>
+  </div>
+
+  <!-- ═══ Content Area (Grid Mode) ═══ -->
+  <div x-show="mode === 'grid'" class="p-5" id="content-area" x-cloak>
     {% if not images %}
     <div class="flex flex-col items-center justify-center py-24 text-gray-400 animate__animated animate__fadeIn">
       <i class="fa-regular fa-image text-6xl mb-5 opacity-40"></i>
@@ -326,6 +428,7 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
       {% include '_group_items.html' %}
     {% endif %}
   </div>
+  <!-- End grid mode -->
 
   <!-- ═══ Confirm Modal ═══ -->
   <template x-teleport="body">
@@ -437,6 +540,7 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
 <script>
 function pendingApp() {
   return {
+    mode: 'overview',
     view: '{{ view }}',
     groupBy: '{{ group_by }}',
     sort: '{{ sort }}',
@@ -449,6 +553,10 @@ function pendingApp() {
     batchCategory: '',
     imageIds: {{ images | map(attribute='id') | list | tojson }},
     q: '{{ request.query_params.get("q","") }}',
+
+    // ── Overview data ──
+    overview: null,
+    overviewLoading: true,
 
     // ── Modal state ──
     modalOpen: false,
@@ -497,6 +605,8 @@ function pendingApp() {
       if (savedSel === 'true') this.selectionMode = true;
 
       const url = new URL(window.location);
+      const hasFilters = url.searchParams.has('work') || url.searchParams.has('type') || url.searchParams.has('category') || url.searchParams.has('q') || url.searchParams.has('ai_status');
+      if (hasFilters) this.mode = 'grid';
       if (!url.searchParams.has('view')) {
         const savedView = localStorage.getItem('pica_view');
         if (savedView && this.views.some(v => v.id === savedView)) this.view = savedView;
@@ -509,6 +619,9 @@ function pendingApp() {
         const savedOrder = localStorage.getItem('pica_order');
         if (savedOrder) this.order = savedOrder;
       }
+
+      // Load overview data
+      this.fetchOverview();
 
       // Listen for confirm events from item partials
       window.addEventListener('confirm-img', (e) => { this.openModal(e.detail.id); });
@@ -530,6 +643,25 @@ function pendingApp() {
           case '?': e.preventDefault(); this.showHelp = !this.showHelp; break;
         }
       });
+    },
+
+    // ── Overview ──
+    async fetchOverview() {
+      this.overviewLoading = true;
+      try {
+        const r = await fetch('/pending/overview');
+        if (r.ok) this.overview = await r.json();
+      } catch(e) { this.overview = null; }
+      this.overviewLoading = false;
+    },
+    switchToGrid(params) {
+      const url = new URL(window.location);
+      url.search = '';
+      for (const [k, v] of Object.entries(params)) {
+        if (v) url.searchParams.set(k, v);
+      }
+      url.searchParams.set('view', this.view);
+      window.location.href = url;
     },
 
     // ── Confirm Modal ──

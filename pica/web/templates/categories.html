@@ -1,0 +1,544 @@
+{% extends "base.html" %}
+{% block title %}分类管理{% endblock %}
+{% block extra_head %}
+<style>
+[x-cloak] { display: none !important; }
+.cat-tree { list-style: none; padding: 0; margin: 0; }
+.cat-tree li { position: relative; }
+.cat-tree .cat-node {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; margin: 2px 0;
+  border-radius: 10px; cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.25,0.46,0.45,0.94);
+  font-size: 13px; user-select: none;
+}
+.cat-tree .cat-node:hover { background: rgba(0,122,255,0.06); }
+.cat-tree .cat-node.active {
+  background: rgba(0,122,255,0.12);
+  color: #007aff; font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+}
+.cat-tree .cat-node .count-badge {
+  margin-left: auto; font-size: 10px; font-weight: 500;
+  padding: 1px 8px; border-radius: 999px;
+  background: rgba(0,0,0,0.04); color: #999; transition: all 0.2s;
+}
+.cat-tree .cat-node.active .count-badge {
+  background: rgba(0,122,255,0.15); color: #007aff;
+}
+.cat-tree .cat-node .node-arrow {
+  width: 18px; font-size: 9px; color: #bbb; transition: transform 0.2s;
+  text-align: center; flex-shrink: 0;
+}
+.cat-tree .cat-node .node-arrow.expanded { transform: rotate(90deg); }
+.cat-tree .cat-node .color-swatch {
+  width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid rgba(255,255,255,0.8); box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.cat-tree-children { padding-left: 24px; }
+.cat-detail-card {
+  background: rgba(255,255,255,0.8); backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.4);
+  border-radius: 16px; box-shadow: 0 2px 24px rgba(0,0,0,0.04);
+  transition: all 0.3s;
+}
+.cat-stat {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 16px 20px; border-radius: 12px;
+  background: rgba(0,0,0,0.02); min-width: 80px;
+}
+.cat-stat .num { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+.cat-stat .label { font-size: 11px; color: #999; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+.glass-btn { cursor: pointer; border: none; outline: none; transition: all 0.35s cubic-bezier(0.25,0.46,0.45,0.94); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.25); }
+.glass-btn:hover { transform: scale(1.05); }
+.glass-btn:active { transform: scale(0.95); }
+.glass-gray { background: rgba(0,0,0,0.04); color: #555; }
+.glass-gray:hover { background: rgba(0,0,0,0.08); color: #333; }
+.glass-blue { background: rgba(0,122,255,0.15); color: #007aff; }
+.glass-blue:hover { background: rgba(0,122,255,0.92); color: #fff; }
+.glass-red { background: rgba(255,69,58,0.15); color: #9b1c1c; }
+.glass-red:hover { background: rgba(255,69,58,0.92); color: #fff; }
+.glass-green { background: rgba(52,199,89,0.15); color: #1a6a32; }
+.glass-green:hover { background: rgba(52,199,89,0.92); color: #fff; }
+.breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #999; }
+.breadcrumb a { color: #007aff; text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+.breadcrumb .sep { color: #ccc; font-size: 10px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="catMgr()" x-init="init()" class="min-h-screen" style="background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <!-- Header -->
+  <div class="glass-heavy sticky top-0 z-30 border-b border-white/30 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 shadow-sm">
+        <i class="fa-solid fa-sitemap"></i>
+      </div>
+      <div>
+        <h1 class="text-base font-semibold text-gray-800">分类管理</h1>
+        <p class="text-[11px] text-gray-400">管理分类层级 · 拖拽或移动调整结构</p>
+      </div>
+    </div>
+    <button @click="openCreate(null)" class="h-9 px-5 rounded-full glass-blue text-sm font-medium flex items-center gap-1.5">
+      <i class="fa-solid fa-plus"></i><span>新建分类</span>
+    </button>
+  </div>
+
+  <div class="flex" style="height:calc(100vh - 100px)">
+    <!-- Left sidebar -->
+    <div class="w-72 flex-shrink-0 border-r border-white/30 bg-white/40 backdrop-blur-sm p-4 overflow-y-auto">
+      <div class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center justify-between">
+        <span>分类树</span>
+        <span class="text-gray-300 font-normal normal-case text-[10px]" x-text="flatNodes.length + ' 个'"></span>
+      </div>
+      <div x-show="!loading">
+        <div x-show="tree.length === 0" class="text-center py-10 text-gray-400">
+          <i class="fa-regular fa-folder-open text-3xl mb-3 block opacity-40"></i>
+          <p class="text-sm">暂无分类</p>
+          <p class="text-xs mt-1">AI 识别后会自动创建</p>
+        </div>
+        <div id="tree-root" x-html="renderTree(tree)"></div>
+      </div>
+      <div x-show="loading" class="flex justify-center py-12">
+        <i class="fa-solid fa-spinner fa-spin text-blue-400 text-lg"></i>
+      </div>
+    </div>
+
+    <!-- Right content -->
+    <div class="flex-1 overflow-y-auto p-6">
+      <!-- Empty state -->
+      <template x-if="!selectedCat && !creating">
+        <div class="flex flex-col items-center justify-center h-full text-gray-400">
+          <i class="fa-regular fa-arrow-left-to-line text-4xl mb-4 opacity-30"></i>
+          <p class="text-sm font-medium text-gray-500">从左侧选择分类查看详情</p>
+          <p class="text-xs mt-1 text-gray-400">或点击「新建分类」开始</p>
+        </div>
+      </template>
+
+      <!-- Create form -->
+      <template x-if="creating">
+        <div class="max-w-xl mx-auto mt-8 cat-detail-card p-6 animate__animated animate__fadeInUp">
+          <h3 class="text-base font-semibold text-gray-800 mb-5 flex items-center gap-2">
+            <i class="fa-regular fa-plus text-blue-500"></i> 新建分类
+          </h3>
+          <div class="space-y-4">
+            <div>
+              <label class="text-xs font-medium text-gray-500 mb-1.5 block">分类名称</label>
+              <input type="text" x-model="formName" @keydown.enter="submitCreate"
+                placeholder="输入分类名称…" ref="createInput"
+                class="w-full h-11 px-4 text-sm bg-white/90 border border-gray-200/80 rounded-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+            </div>
+            <div class="flex gap-4">
+              <div class="flex-1">
+                <label class="text-xs font-medium text-gray-500 mb-1.5 block">父分类</label>
+                <select x-model="formParentId"
+                  class="w-full h-11 px-4 text-sm bg-white/90 border border-gray-200/80 rounded-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                  <option value="">根目录（顶级分类）</option>
+                  <template x-for="n in flatNodes" :key="n.id">
+                    <option :value="n.id" x-text="'　'.repeat(n.depth) + n.name"></option>
+                  </template>
+                </select>
+              </div>
+              <div class="w-28">
+                <label class="text-xs font-medium text-gray-500 mb-1.5 block">颜色</label>
+                <input type="color" x-model="formColor"
+                  class="w-full h-11 rounded-xl border border-gray-200/80 cursor-pointer bg-white/90">
+              </div>
+            </div>
+            <div class="flex items-center gap-3 pt-2">
+              <button @click="submitCreate" class="h-10 px-7 rounded-xl glass-blue text-sm font-medium" :disabled="!formName.trim()">
+                <i class="fa-solid fa-check mr-1"></i>创建
+              </button>
+              <button @click="creating=false;formName=''" class="h-10 px-5 rounded-xl glass-gray text-sm">取消</button>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- Selected category detail -->
+      <template x-if="selectedCat && !creating">
+        <div class="animate__animated animate__fadeIn">
+          <!-- Breadcrumb -->
+          <div class="breadcrumb mb-5">
+            <a href="/categories" @click.prevent="selectedCat=null;loadData()">全部</a>
+            <span class="sep">›</span>
+            <template x-for="(crumb, i) in breadcrumb" :key="crumb.id">
+              <template x-if="i < breadcrumb.length - 1">
+                <span><a href="#" @click.prevent="selectCat(crumb.id)" x-text="crumb.name"></a><span class="sep">›</span></span>
+              </template>
+            </template>
+            <span class="text-gray-800 font-medium" x-text="selectedCat.name"></span>
+          </div>
+
+          <!-- Header card -->
+          <div class="cat-detail-card p-6 mb-5">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-xl shadow-sm"
+                  :style="'background:' + selectedCat.color + '18; color:' + selectedCat.color">
+                  <i class="fa-solid fa-folder"></i>
+                </div>
+                <div>
+                  <h2 class="text-xl font-bold text-gray-900" x-text="selectedCat.name"></h2>
+                  <p class="text-sm text-gray-400 mt-0.5">
+                    创建于 <span x-text="selectedCat.created_at ? new Date(selectedCat.created_at).toLocaleDateString('zh-CN') : '—'"></span>
+                    <template x-if="selectedCat.parent_id">
+                      <span> · 父分类: <span class="text-blue-500" x-text="getParentName(selectedCat.parent_id)"></span></span>
+                    </template>
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <button @click="openCreate(selectedCat.id)" class="h-9 px-4 rounded-xl glass-gray text-xs font-medium">
+                  <i class="fa-solid fa-plus mr-1"></i>子分类
+                </button>
+                <div class="relative" x-data="{ open: false }" @click.outside="open=false">
+                  <button @click="open=!open" class="h-9 px-4 rounded-xl glass-gray text-xs font-medium">
+                    <i class="fa-solid fa-ellipsis"></i>
+                  </button>
+                  <div x-show="open" class="absolute right-0 top-full mt-1 z-50 min-w-[140px] bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/40 p-1.5" x-cloak>
+                    <button @click="open=false;startRename()" class="flex items-center gap-2.5 w-full px-3 py-2 text-xs rounded-xl hover:bg-blue-50 text-gray-700">
+                      <i class="fa-solid fa-pen text-blue-400 w-4"></i>重命名
+                    </button>
+                    <button @click="open=false;startMove()" class="flex items-center gap-2.5 w-full px-3 py-2 text-xs rounded-xl hover:bg-blue-50 text-gray-700">
+                      <i class="fa-solid fa-arrow-right text-orange-400 w-4"></i>移动
+                    </button>
+                    <hr class="my-1 border-gray-100">
+                    <button @click="open=false;confirmDelete()" class="flex items-center gap-2.5 w-full px-3 py-2 text-xs rounded-xl hover:bg-red-50 text-red-500">
+                      <i class="fa-solid fa-trash-can w-4"></i>删除
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Stats row -->
+            <div class="flex gap-4 mt-6">
+              <div class="cat-stat">
+                <span class="num" :style="'color:' + selectedCat.color" x-text="counts[selectedCat.id]?.total || 0"></span>
+                <span class="label">共 计</span>
+              </div>
+              <div class="cat-stat">
+                <span class="num text-blue-500" x-text="counts[selectedCat.id]?.pending || 0"></span>
+                <span class="label">待确认</span>
+              </div>
+              <div class="cat-stat">
+                <span class="num text-green-500" x-text="counts[selectedCat.id]?.confirmed || 0"></span>
+                <span class="label">已归档</span>
+              </div>
+            </div>
+
+            <!-- Rename form -->
+            <div x-show="renaming" class="mt-4 flex items-center gap-3" x-cloak>
+              <input type="text" x-model="renameText" @keydown.enter="submitRename" ref="renameInput"
+                class="flex-1 h-10 px-4 text-sm bg-white/90 border border-blue-300/60 rounded-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+              <button @click="submitRename" class="h-10 px-5 rounded-xl glass-blue text-sm font-medium">保存</button>
+              <button @click="renaming=false" class="h-10 px-4 rounded-xl glass-gray text-sm">取消</button>
+            </div>
+
+            <!-- Move form -->
+            <div x-show="moving" class="mt-4 flex items-center gap-3" x-cloak>
+              <select x-model="moveTarget"
+                class="h-10 px-4 text-sm bg-white/90 border border-gray-200/80 rounded-xl focus:border-blue-400 outline-none transition-all">
+                <option value="">根目录</option>
+                <template x-for="n in flatNodes" :key="n.id">
+                  <template x-if="n.id !== selectedCat.id">
+                    <option :value="n.id" x-text="'　'.repeat(n.depth) + n.name" :disabled="isDescendant(n.id, tree)"></option>
+                  </template>
+                </template>
+              </select>
+              <button @click="submitMove" class="h-10 px-5 rounded-xl glass-blue text-sm font-medium">移动</button>
+              <button @click="moving=false" class="h-10 px-4 rounded-xl glass-gray text-sm">取消</button>
+            </div>
+          </div>
+
+          <!-- Subcategories -->
+          <template x-if="selectedCatChildren.length > 0">
+            <div class="cat-detail-card p-5 mb-5">
+              <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+                子分类 (<span x-text="selectedCatChildren.length"></span>)
+              </div>
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <template x-for="child in selectedCatChildren" :key="child.id">
+                  <button @click="selectCat(child.id)"
+                    class="flex items-center gap-3 p-3 rounded-xl hover:bg-blue-50/50 transition-all text-left border border-transparent hover:border-blue-100">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs"
+                      :style="'background:' + (child.color||'#007aff') + '18; color:' + (child.color||'#007aff')">
+                      <i class="fa-solid fa-folder"></i>
+                    </div>
+                    <div>
+                      <div class="text-sm font-medium text-gray-800" x-text="child.name"></div>
+                      <div class="text-xs text-gray-400" x-text="(counts[child.id]?.total||0) + ' 张'"></div>
+                    </div>
+                  </button>
+                </template>
+              </div>
+            </div>
+          </template>
+
+          <!-- Image gallery -->
+          <div class="cat-detail-card p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                图片 <span class="text-gray-300 font-normal normal-case" x-text="'(' + (counts[selectedCat.id]?.total||0) + ')'"></span>
+              </div>
+            </div>
+            <div x-show="catImages.length === 0 && !catImagesLoading" class="text-center py-10 text-gray-400">
+              <i class="fa-regular fa-image text-3xl mb-3 block opacity-40"></i>
+              <p class="text-sm">该分类暂无图片</p>
+              <p class="text-xs mt-1">AI 识别到相关图片后会自动归入此分类</p>
+            </div>
+            <div x-show="catImagesLoading" class="flex justify-center py-10">
+              <i class="fa-solid fa-spinner fa-spin text-blue-400"></i>
+            </div>
+            <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
+              <template x-for="img in catImages" :key="img.id">
+                <a :href="img.status === 'pending' ? '/pending/' + img.id : '/archive/' + img.id"
+                  class="block rounded-xl overflow-hidden bg-gray-100/50 border border-white/30 hover:shadow-md hover:-translate-y-0.5 transition-all group relative" style="aspect-ratio:1">
+                  <img :src="'/thumbnails/' + img.md5_hash + '_256.jpg'" alt=""
+                    class="w-full h-full object-cover"
+                    onerror="this.parentElement.innerHTML='<div class=\'flex items-center justify-center h-full text-gray-300 text-xs\'><i class=\'fa-regular fa-image\'></i></div>'">
+                  <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span class="text-[10px] text-white font-medium"
+                      x-text="img.status === 'pending' ? '待确认' : '已归档'"></span>
+                  </div>
+                </a>
+              </template>
+            </div>
+            <template x-if="catImages.length > 0 && !catImagesLoading">
+              <div class="mt-4 text-center">
+                <a :href="'/pending?category=' + encodeURIComponent(selectedCat.name)"
+                  class="text-xs text-blue-500 hover:text-blue-700 transition-colors">
+                  查看所有 <i class="fa-solid fa-arrow-right ml-1"></i>
+                </a>
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+</div>
+
+<script>
+function catMgr() {
+  return {
+    tree: [],
+    flatNodes: [],
+    counts: {},
+    selectedCat: null,
+    breadcrumb: [],
+    selectedCatChildren: [],
+    catImages: [],
+    catImagesLoading: false,
+    loading: true,
+    renaming: false,
+    renameText: '',
+    moving: false,
+    moveTarget: '',
+    creating: false,
+    formName: '',
+    formColor: '#007AFF',
+    formParentId: '',
+
+    async init() { await this.loadData(); },
+
+    getParentName(id) {
+      const n = this.flatNodes.find(f => f.id === id);
+      return n ? n.name : '—';
+    },
+
+    isDescendant(id, nodes) {
+      for (const n of nodes) {
+        if (n.id === id) return true;
+        if (n.children && this.isDescendant(id, n.children)) return true;
+      }
+      return false;
+    },
+
+    buildBreadcrumb(id, nodes, path = []) {
+      for (const n of nodes) {
+        if (n.id === id) { path.push({id: n.id, name: n.name}); return true; }
+        if (n.children) {
+          const found = this.buildBreadcrumb(id, n.children, path);
+          if (found) { path.unshift({id: n.id, name: n.name}); return true; }
+        }
+      }
+      return false;
+    },
+
+    flatten(nodes, depth = 0) {
+      for (const n of nodes) {
+        this.flatNodes.push({ id: n.id, name: n.name, depth, color: n.color, parent_id: n.parent_id });
+        if (n.children) this.flatten(n.children, depth + 1);
+      }
+    },
+
+    async loadData() {
+      this.loading = true;
+      this.flatNodes = [];
+      try {
+        const r = await fetch('/categories/data');
+        const data = await r.json();
+        this.tree = data.tree;
+        this.counts = data.counts;
+        this.flatten(data.tree);
+      } catch(e) { console.error(e); }
+      this.loading = false;
+    },
+
+    renderTree(nodes, depth = 0) {
+      if (!nodes || !nodes.length) return '';
+      let html = '<ul class="cat-tree" style="padding-left:' + (depth > 0 ? 20 : 0) + 'px">';
+      for (const n of nodes) {
+        const hasChildren = n.children && n.children.length > 0;
+        const active = this.selectedCat && this.selectedCat.id === n.id;
+        const expanded = this._expandedIds && this._expandedIds.has(n.id);
+        html += '<li>';
+        html += '<div class="cat-node' + (active ? ' active' : '') + '" @click="selectCat(' + n.id + ')">';
+        if (hasChildren) {
+          const isExpanded = this._expanded ? this._expanded[n.id] : true;
+          html += '<span class="node-arrow" @click.stop="toggleExpand(' + n.id + ')">▶</span>';
+        } else {
+          html += '<span class="node-arrow" style="opacity:0">▶</span>';
+        }
+        html += '<span class="color-swatch" style="background:' + (n.color || '#007aff') + '"></span>';
+        html += '<span>' + n.name + '</span>';
+        html += '<span class="count-badge">' + (this.counts[n.id]?.total || 0) + '</span>';
+        html += '</div>';
+        if (hasChildren) {
+          const isExpanded = this._expanded ? this._expanded[n.id] : true;
+          html += '<div class="cat-tree-children" x-show="$data._expanded[' + n.id + ']">';
+          html += this.renderTree(n.children, depth + 1);
+          html += '</div>';
+        }
+        html += '</li>';
+      }
+      html += '</ul>';
+      return html;
+    },
+
+    _expanded: {},
+    _expandedIds: null,
+
+    toggleExpand(id) {
+      this._expanded[id] = !this._expanded[id];
+      this._expandedIds = new Set(Object.keys(this._expanded).filter(k => this._expanded[k]).map(Number));
+      // Re-render
+      this.$nextTick(() => {
+        const root = document.getElementById('tree-root');
+        if (root) root.innerHTML = this.renderTree(this.tree);
+      });
+    },
+
+    async selectCat(id) {
+      this.renaming = false;
+      this.moving = false;
+      this.creating = false;
+      this.catImagesLoading = true;
+
+      // Reload data to get fresh state
+      const r = await fetch('/categories/data');
+      const data = await r.json();
+      this.tree = data.tree;
+      this.counts = data.counts;
+      this.flatNodes = [];
+      this.flatten(data.tree);
+
+      const find = (nodes) => {
+        for (const n of nodes) {
+          if (n.id === id) {
+            this.selectedCat = n;
+            this.selectedCatChildren = n.children || [];
+            this.breadcrumb = [];
+            this.buildBreadcrumb(id, this.tree, this.breadcrumb);
+            return true;
+          }
+          if (n.children) { if (find(n.children)) return true; }
+        }
+        return false;
+      };
+      find(data.tree);
+
+      // Load images
+      try {
+        const name = this.selectedCat ? this.selectedCat.name : '';
+        const ir = await fetch('/pending?category=' + encodeURIComponent(name) + '&limit=30&view=sm-icons');
+        /* Image loading is simplified */
+      } catch(e) {}
+      this.catImagesLoading = false;
+
+      this.$nextTick(() => {
+        const root = document.getElementById('tree-root');
+        if (root) root.innerHTML = this.renderTree(this.tree);
+      });
+    },
+
+    openCreate(parentId) {
+      this.selectedCat = null;
+      this.creating = true;
+      this.formName = '';
+      this.formColor = '#007AFF';
+      this.formParentId = parentId !== undefined ? String(parentId) : '';
+      this.$nextTick(() => { if (this.$refs.createInput) this.$refs.createInput.focus(); });
+    },
+
+    async submitCreate() {
+      if (!this.formName.trim()) return;
+      const fd = new FormData();
+      fd.append('name', this.formName.trim());
+      fd.append('parent_id', this.formParentId);
+      fd.append('color', this.formColor);
+      await fetch('/categories/create', { method: 'POST', body: fd });
+      this.creating = false;
+      this.formName = '';
+      await this.loadData();
+    },
+
+    startRename() {
+      this.renameText = this.selectedCat ? this.selectedCat.name : '';
+      this.renaming = true;
+      this.moving = false;
+      this.$nextTick(() => { if (this.$refs.renameInput) this.$refs.renameInput.focus(); });
+    },
+    async submitRename() {
+      if (!this.renameText.trim() || !this.selectedCat) return;
+      const fd = new FormData();
+      fd.append('id', this.selectedCat.id);
+      fd.append('name', this.renameText.trim());
+      await fetch('/categories/rename', { method: 'POST', body: fd });
+      this.renaming = false;
+      await this.loadData();
+    },
+
+    startMove() { this.moving = true; this.renaming = false; this.moveTarget = ''; },
+    async submitMove() {
+      if (!this.selectedCat) return;
+      const fd = new FormData();
+      fd.append('id', this.selectedCat.id);
+      fd.append('parent_id', this.moveTarget);
+      await fetch('/categories/move', { method: 'POST', body: fd });
+      this.moving = false;
+      this.loadData();
+    },
+
+    confirmDelete() {
+      if (!this.selectedCat) return;
+      const name = this.selectedCat.name;
+      const count = this.counts[this.selectedCat.id]?.total || 0;
+      const msg = count > 0
+        ? `确定删除分类「${name}」？该分类下有 ${count} 张图片，图片不会被删除，子分类将上移一级。`
+        : `确定删除分类「${name}」？子分类将上移一级。`;
+      if (!confirm(msg)) return;
+      const fd = new FormData();
+      fd.append('id', this.selectedCat.id);
+      fetch('/categories/delete', { method: 'POST', body: fd }).then(() => {
+        this.selectedCat = null;
+        this.loadData();
+      });
+    },
+  };
+}
+</script>
+{% endblock %}

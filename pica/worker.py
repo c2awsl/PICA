@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -88,9 +89,13 @@ class Worker:
                 phash=ph,
             )
 
+            session.add(img)
+            session.flush()
+
             if result:
-                img.suggested_category = str(result.get("category", []))
-                img.suggested_tags = str(result.get("tags", []))
+                self._recognizer.save_result_to_db(img.id, result, session)
+                img.suggested_category = json.dumps(result.get("category", []), ensure_ascii=False)
+                img.suggested_tags = json.dumps(result.get("tags", []), ensure_ascii=False)
                 img.work_name = result.get("work", "")
                 img.image_type = result.get("image_type", "")
                 img.ai_model = result.get("model")
@@ -99,8 +104,6 @@ class Worker:
                 img.ai_status = "done"
             else:
                 img.ai_status = "failed"
-            session.add(img)
-            session.flush()
             assign_similar_group(session, img)
             session.commit()
         except Exception as e:

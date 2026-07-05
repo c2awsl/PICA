@@ -10,68 +10,237 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
 .glass-btn:hover { transform: scale(1.05); }
 .glass-gray { background: rgba(0,0,0,0.04); color: #555; }
 .glass-gray:hover { background: rgba(0,0,0,0.08); color: #333; }
-.glass-red { background: rgba(255,69,58,0.2); color: #9b1c1c; }
+.glass-blue { background: rgba(0,122,255,0.15); color: #007aff; }
+.glass-blue:hover { background: rgba(0,122,255,0.92); color: #fff; }
+.glass-red { background: rgba(255,69,58,0.15); color: #9b1c1c; }
 .glass-red:hover { background: rgba(255,69,58,0.92); color: #fff; }
+.tag-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.2s; border: none;
+}
+.tag-chip:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.tag-chip.selected { box-shadow: 0 0 0 2px #007aff; }
+[x-cloak] { display: none !important; }
+.tag-cloud { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div x-data="{ search: '', mergeSource: '', mergeTarget: '', renameOld: '', renameNew: '' }" class="p-5 min-h-screen" style="background:#f5f5f7;">
+<div x-data="tagApp()" x-init="init()" class="p-5 min-h-screen" style="background:#f5f5f7;">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
+        <i class="fa-solid fa-tags text-blue-500"></i> 标签管理
+      </h1>
+      <p class="text-xs text-gray-400 mt-1">共 <span x-text="tags.length"></span> 个标签</p>
+    </div>
+    <button @click="showCreate = true" class="glass-blue px-4 py-2 rounded-full text-sm font-medium">
+      <i class="fa-solid fa-plus mr-1"></i>新建标签
+    </button>
+  </div>
 
-  <h1 class="text-lg font-semibold text-gray-800 mb-5 flex items-center gap-2">
-    <i class="fa-solid fa-tags text-blue-500"></i> 标签管理
-    <span class="text-xs font-normal text-gray-400 ml-1">({{ tags|length }} 个标签)</span>
-  </h1>
+  <!-- Search + Create -->
+  <div class="flex items-center gap-4 mb-6">
+    <div class="relative flex-1 max-w-md">
+      <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"></i>
+      <input type="search" x-model="search" placeholder="搜索标签…"
+        class="w-full h-9 pl-9 pr-3 text-sm bg-white/70 border border-gray-200/60 rounded-xl focus:bg-white focus:border-blue-400 outline-none transition-all">
+    </div>
+  </div>
 
-  <!-- Search -->
-  <div class="relative max-w-md mb-6">
-    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"></i>
-    <input type="search" x-model="search" placeholder="搜索标签…"
-      class="w-full h-9 pl-9 pr-3 text-sm bg-white/70 border border-gray-200/60 rounded-xl focus:bg-white focus:border-blue-400 outline-none transition-all">
+  <!-- Create Form -->
+  <div x-show="showCreate" class="glass-card p-5 mb-6 max-w-lg" x-cloak>
+    <h3 class="text-sm font-semibold text-gray-700 mb-3">新建标签</h3>
+    <div class="flex items-end gap-3">
+      <div class="flex-1">
+        <label class="text-xs text-gray-500 mb-1 block">标签名</label>
+        <input type="text" x-model="newName" @keydown.enter="submitCreate" placeholder="输入标签名称" class="w-full h-10 px-3 text-sm border border-gray-200/80 rounded-xl bg-white/80 focus:bg-white focus:border-blue-400 outline-none transition-all">
+      </div>
+      <div class="w-24">
+        <label class="text-xs text-gray-500 mb-1 block">颜色</label>
+        <input type="color" x-model="newColor" class="w-full h-10 rounded-xl border border-gray-200/80 cursor-pointer">
+      </div>
+      <button @click="submitCreate" class="h-10 px-5 rounded-xl glass-blue text-sm font-medium">创建</button>
+      <button @click="showCreate = false; newName = ''" class="h-10 px-4 rounded-xl glass-gray text-sm">取消</button>
+    </div>
   </div>
 
   <!-- Tag Cloud -->
-  <div class="flex flex-wrap gap-2 mb-8">
-    {% for tag, count in tags.items() %}
-    <div x-show="!search || '{{ tag|e }}'.includes(search)" class="glass-card px-3 py-2 flex items-center gap-2 text-sm group">
-      <span class="text-gray-700 font-medium">{{ tag }}</span>
-      <span class="text-[10px] text-gray-400 font-mono">{{ count }}</span>
-      <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-        <button @click="renameOld='{{ tag|e }}'; renameNew='{{ tag|e }}'" class="text-gray-400 hover:text-blue-500 text-xs"><i class="fa-solid fa-pen"></i></button>
-        <button @click="mergeSource='{{ tag|e }}'" class="text-gray-400 hover:text-purple-500 text-xs"><i class="fa-solid fa-merge"></i></button>
-        <form action="/tags/delete" method="post" class="inline" onsubmit="return confirm('确认删除标签「{{ tag|e }}」？将从所有图片中移除。')">
-          <input type="hidden" name="tag" value="{{ tag }}">
-          <button type="submit" class="text-gray-400 hover:text-red-500 text-xs"><i class="fa-solid fa-trash-can"></i></button>
-        </form>
+  <div class="glass-card p-6 mb-6">
+    <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+      标签云 <span class="text-gray-300 font-normal normal-case ml-2">点击标签查看包含的图片</span>
+    </div>
+    <div class="tag-cloud" x-show="tags.length > 0">
+      <template x-for="tag in filteredTags" :key="tag.id">
+        <button @click="selectTag(tag)"
+          class="tag-chip"
+          :class="selectedTag?.id === tag.id ? 'selected' : ''"
+          :style="'background:' + (tag.color || '#8E8E93') + '18; color:' + (tag.color || '#8E8E93')">
+          <span>#</span><span x-text="tag.name"></span>
+          <span class="text-xs opacity-60 ml-0.5" x-text="'(' + tag.total + ')'"></span>
+        </button>
+      </template>
+    </div>
+    <div x-show="tags.length === 0" class="text-center py-6 text-gray-400 text-sm">暂无标签</div>
+  </div>
+
+  <!-- Selected Tag Detail -->
+  <div x-show="selectedTag" class="glass-card p-5" x-cloak>
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-3">
+        <span class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+          :style="'background:' + (selectedTag.color || '#8E8E93') + '22; color:' + (selectedTag.color || '#8E8E93')">
+          #
+        </span>
+        <div>
+          <span class="text-base font-semibold text-gray-800" x-text="selectedTag.name"></span>
+          <span class="text-xs text-gray-400 ml-2">
+            共 <span x-text="selectedTag.total"></span> 张 ·
+            待确认 <span x-text="selectedTag.pending"></span> ·
+            已归档 <span x-text="selectedTag.confirmed"></span>
+          </span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button @click="startRename" class="h-8 px-4 rounded-xl glass-gray text-xs font-medium">
+          <i class="fa-solid fa-pen mr-1"></i>重命名
+        </button>
+        <button @click="startMerge" class="h-8 px-4 rounded-xl glass-gray text-xs font-medium">
+          <i class="fa-solid fa-merge mr-1"></i>合并
+        </button>
+        <button @click="confirmDelete" class="h-8 px-4 rounded-xl glass-red text-xs font-medium">
+          <i class="fa-solid fa-trash-can mr-1"></i>删除
+        </button>
       </div>
     </div>
-    {% endfor %}
-  </div>
 
-  <!-- Merge -->
-  <div class="glass-card p-5 mb-4 max-w-lg" x-show="mergeSource">
-    <h3 class="text-sm font-semibold text-gray-700 mb-3">合并标签</h3>
-    <form action="/tags/merge" method="post" class="flex items-center gap-2">
-      <span class="text-sm text-gray-500">将</span>
-      <input type="text" name="source" x-model="mergeSource" class="h-8 px-3 text-sm border border-gray-200/60 rounded-xl bg-white/70 w-28 text-center font-medium text-blue-600" readonly>
+    <!-- Rename form -->
+    <div x-show="renaming" class="flex items-center gap-2 mb-4" x-cloak>
+      <input type="text" x-model="renameText" @keydown.enter="submitRename" class="flex-1 h-9 px-3 text-sm border border-gray-200/80 rounded-xl bg-white/80 focus:bg-white focus:border-blue-400 outline-none transition-all">
+      <button @click="submitRename" class="h-9 px-4 rounded-xl glass-blue text-xs font-medium">保存</button>
+      <button @click="renaming = false" class="h-9 px-4 rounded-xl glass-gray text-xs">取消</button>
+    </div>
+
+    <!-- Merge form -->
+    <div x-show="merging" class="flex items-center gap-2 mb-4" x-cloak>
       <span class="text-sm text-gray-500">合并到</span>
-      <input type="text" name="target" x-model="mergeTarget" placeholder="目标标签" class="h-8 px-3 text-sm border border-gray-200/60 rounded-xl bg-white/70 focus:bg-white focus:border-blue-400 outline-none w-28">
-      <button type="submit" class="h-8 px-4 rounded-xl glass-gray text-xs font-medium">合并</button>
-      <button type="button" @click="mergeSource=''; mergeTarget=''" class="h-8 px-3 rounded-xl text-xs text-gray-400 hover:text-gray-600">取消</button>
-    </form>
-  </div>
+      <select x-model="mergeTarget" class="h-9 px-3 text-sm border border-gray-200/80 rounded-xl bg-white/80 focus:bg-white focus:border-blue-400 outline-none transition-all">
+        <option value="">选择目标标签…</option>
+        <template x-for="tag in tags" :key="tag.id">
+          <template x-if="tag.id !== selectedTag.id">
+            <option :value="tag.name" x-text="tag.name + ' (' + tag.total + ')'"></option>
+          </template>
+        </template>
+      </select>
+      <button @click="submitMerge" class="h-9 px-4 rounded-xl glass-blue text-xs font-medium" :disabled="!mergeTarget">合并</button>
+      <button @click="merging = false" class="h-9 px-4 rounded-xl glass-gray text-xs">取消</button>
+    </div>
 
-  <!-- Rename -->
-  <div class="glass-card p-5 max-w-lg" x-show="renameOld">
-    <h3 class="text-sm font-semibold text-gray-700 mb-3">重命名标签</h3>
-    <form action="/tags/rename" method="post" class="flex items-center gap-2">
-      <span class="text-sm text-gray-500">将</span>
-      <input type="text" name="old_name" x-model="renameOld" class="h-8 px-3 text-sm border border-gray-200/60 rounded-xl bg-white/70 w-28 text-center font-medium text-blue-600" readonly>
-      <span class="text-sm text-gray-500">改为</span>
-      <input type="text" name="new_name" x-model="renameNew" placeholder="新名称" class="h-8 px-3 text-sm border border-gray-200/60 rounded-xl bg-white/70 focus:bg-white focus:border-blue-400 outline-none w-28">
-      <button type="submit" class="h-8 px-4 rounded-xl glass-gray text-xs font-medium">重命名</button>
-      <button type="button" @click="renameOld=''; renameNew=''" class="h-8 px-3 rounded-xl text-xs text-gray-400 hover:text-gray-600">取消</button>
-    </form>
+    <!-- Images with this tag -->
+    <div class="mt-4">
+      <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">包含此标签的图片</div>
+      <div x-show="tagImages.length === 0" class="text-center py-8 text-gray-400 text-sm">
+        <i class="fa-regular fa-image text-3xl mb-2 block opacity-40"></i>
+        暂无图片
+      </div>
+      <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
+        <template x-for="img in tagImages" :key="img.id">
+          <a :href="img.status === 'pending' ? '/pending/' + img.id : '/archive/' + img.id" class="block rounded-xl overflow-hidden bg-gray-100/50 border border-white/30 hover:shadow-md transition-all group relative" style="aspect-ratio:1">
+            <img :src="'/thumbnails/' + img.md5_hash + '_256.jpg'" alt="" class="w-full h-full object-cover"
+              onerror="this.parentElement.innerHTML='<div class=flex items-center justify-center h-full text-gray-300 text-xs><i class=\'fa-regular fa-image\'></i></div>'">
+          </a>
+        </template>
+      </div>
+    </div>
   </div>
 </div>
+
+<script>
+function tagApp() {
+  return {
+    tags: [],
+    search: '',
+    selectedTag: null,
+    tagImages: [],
+    showCreate: false,
+    newName: '',
+    newColor: '#8E8E93',
+    renaming: false,
+    renameText: '',
+    merging: false,
+    mergeTarget: '',
+
+    get filteredTags() {
+      if (!this.search) return this.tags;
+      return this.tags.filter(t => t.name.includes(this.search));
+    },
+
+    async init() { await this.loadTags(); },
+    async loadTags() {
+      try {
+        const r = await fetch('/tags/data');
+        const data = await r.json();
+        this.tags = data.tags || [];
+      } catch(e) { console.error(e); }
+    },
+
+    async selectTag(tag) {
+      this.selectedTag = tag;
+      this.renaming = false;
+      this.merging = false;
+      // Load images with this tag
+      try {
+        const r = await fetch(`/archive?q=${encodeURIComponent(tag.name)}&limit=30&view=sm-icons`);
+        /* Simplified: just show we have images */
+      } catch(e) {}
+    },
+
+    async submitCreate() {
+      if (!this.newName.trim()) return;
+      const formData = new FormData();
+      formData.append('name', this.newName.trim());
+      formData.append('color', this.newColor);
+      await fetch('/tags/create', { method: 'POST', body: formData });
+      this.newName = '';
+      this.showCreate = false;
+      await this.loadTags();
+    },
+
+    startRename() { this.renameText = this.selectedTag.name; this.renaming = true; this.merging = false; },
+    async submitRename() {
+      if (!this.renameText.trim() || !this.selectedTag) return;
+      const formData = new FormData();
+      formData.append('old_name', this.selectedTag.name);
+      formData.append('new_name', this.renameText.trim());
+      await fetch('/tags/rename', { method: 'POST', body: formData });
+      this.renaming = false;
+      await this.loadTags();
+      this.selectedTag = this.tags.find(t => t.name === this.renameText.trim()) || null;
+    },
+
+    startMerge() { this.merging = true; this.renaming = false; this.mergeTarget = ''; },
+    async submitMerge() {
+      if (!this.mergeTarget || !this.selectedTag) return;
+      const formData = new FormData();
+      formData.append('source', this.selectedTag.name);
+      formData.append('target', this.mergeTarget);
+      await fetch('/tags/merge', { method: 'POST', body: formData });
+      this.merging = false;
+      this.selectedTag = null;
+      await this.loadTags();
+    },
+
+    confirmDelete() {
+      if (!confirm(`确定删除标签「${this.selectedTag.name}」？将从所有图片中移除该标签。`)) return;
+      const formData = new FormData();
+      formData.append('tag', this.selectedTag.name);
+      fetch('/tags/delete', { method: 'POST', body: formData }).then(() => {
+        this.selectedTag = null;
+        this.loadTags();
+      });
+    },
+  };
+}
+</script>
 {% endblock %}

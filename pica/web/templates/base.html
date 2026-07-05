@@ -271,6 +271,9 @@
             <a href="/archive" class="{{ 'active' if request.url.path.startswith('/archive') else '' }}">
                 <i class="fa-regular fa-folder mr-1.5"></i>归档
             </a>
+            <a href="/categories" class="{{ 'active' if request.url.path == '/categories' else '' }}">
+                <i class="fa-solid fa-sitemap mr-1.5"></i>分类
+            </a>
             <a href="/scan" class="{{ 'active' if request.url.path == '/scan' else '' }}">
                 <i class="fa-regular fa-radar mr-1.5"></i>扫描
             </a>

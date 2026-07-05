@@ -6,54 +6,77 @@
 <style>
 html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f5f5f7; }
 .glass-card { background: rgba(255,255,255,0.72); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 2px 20px rgba(0,0,0,0.04); border-radius: 1rem; transition: all 0.2s; }
-.glass-btn { cursor: pointer; border: none; outline: none; transition: all 0.35s; backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.25); }
+.glass-card:hover { box-shadow: 0 4px 30px rgba(0,0,0,0.06); }
+.glass-btn { cursor: pointer; border: none; outline: none; transition: all 0.35s cubic-bezier(0.25,0.46,0.45,0.94); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.25); }
 .glass-btn:hover { transform: scale(1.05); }
+.glass-btn:active { transform: scale(0.95); }
 .glass-gray { background: rgba(0,0,0,0.04); color: #555; }
 .glass-gray:hover { background: rgba(0,0,0,0.08); color: #333; }
-.glass-red { background: rgba(255,69,58,0.2); color: #9b1c1c; }
+.glass-red { background: rgba(255,69,58,0.15); color: #9b1c1c; }
 .glass-red:hover { background: rgba(255,69,58,0.92); color: #fff; }
-.glass-blue { background: rgba(0,122,255,0.2); color: #003d7a; }
+.glass-blue { background: rgba(0,122,255,0.15); color: #007aff; }
 .glass-blue:hover { background: rgba(0,122,255,0.92); color: #fff; }
+.glass-green { background: rgba(52,199,89,0.15); color: #1a6a32; }
+.glass-green:hover { background: rgba(52,199,89,0.92); color: #fff; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="p-5 min-h-screen" style="background:#f5f5f7;">
-  <h1 class="text-lg font-semibold text-gray-800 mb-5 flex items-center gap-2">
-    <i class="fa-solid fa-layer-group text-purple-500"></i> 分组管理
-    <span class="text-xs font-normal text-gray-400 ml-1">({{ group_data|length }} 组)</span>
-  </h1>
+<div x-data="groupApp()" x-init="init()" class="p-5 min-h-screen" style="background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-full bg-purple-50 flex items-center justify-center text-purple-500 shadow-sm">
+        <i class="fa-solid fa-layer-group"></i>
+      </div>
+      <div>
+        <h1 class="text-lg font-semibold text-gray-800">分组管理</h1>
+        <p class="text-[11px] text-gray-400">近似图片分组 · 选择保留项后批量处理</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="/groups?processed=0" class="h-8 px-4 rounded-full text-xs font-medium transition-all {{ 'bg-black/80 text-white shadow-sm' if not show_processed else 'glass-gray' }}">
+        <i class="fa-regular fa-clock mr-1"></i>待处理
+      </a>
+      <a href="/groups?processed=1" class="h-8 px-4 rounded-full text-xs font-medium transition-all {{ 'bg-black/80 text-white shadow-sm' if show_processed else 'glass-gray' }}">
+        <i class="fa-regular fa-circle-check mr-1"></i>已处理
+      </a>
+    </div>
+  </div>
 
   {% if not group_data %}
   <div class="flex flex-col items-center justify-center py-24 text-gray-400">
     <i class="fa-regular fa-object-group text-6xl mb-5 opacity-40"></i>
-    <p class="text-base font-medium text-gray-500">暂无分组</p>
+    <p class="text-base font-medium text-gray-500">
+      {% if show_processed %}暂无已处理的分组{% else %}暂无待处理的分组{% endif %}
+    </p>
     <p class="text-sm mt-1.5 text-gray-400">扫描图片后会自动按近似度分组</p>
   </div>
   {% else %}
-  <div class="grid gap-4" style="grid-template-columns:repeat(auto-fill,minmax(320px,1fr))">
+  <div class="grid gap-4" style="grid-template-columns:repeat(auto-fill,minmax(340px,1fr))">
     {% for gd in group_data %}
-    <div class="glass-card p-4">
+    <div class="glass-card p-4 transition-all duration-300 hover:-translate-y-0.5">
       <div class="flex items-center justify-between mb-3">
-        <div>
-          <span class="text-sm font-semibold text-gray-800">{{ gd.group.name or '分组 #' + gd.group.id|string }}</span>
-          <span class="text-xs text-gray-400 ml-2">{{ gd.total }} 张</span>
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-purple-500 text-xs flex-shrink-0">
+            <i class="fa-solid {{ 'fa-circle-check text-green-500' if gd.group.processed else 'fa-layer-group' }}"></i>
+          </span>
+          <div class="min-w-0">
+            <span class="text-sm font-semibold text-gray-800 truncate block">{{ gd.group.name or '分组 #' + gd.group.id|string }}</span>
+            <span class="text-[10px] text-gray-400">{{ gd.total }} 张 · {{ gd.group.created_at.strftime('%m-%d %H:%M') if gd.group.created_at else '' }}</span>
+          </div>
         </div>
-        <div class="flex gap-1.5">
-          <form action="/groups/{{ gd.group.id }}/rename" method="post" class="inline-flex items-center gap-1">
-            <input type="text" name="name" placeholder="重命名" class="w-20 h-7 px-2 text-xs border border-gray-200/60 rounded-lg bg-white/60 focus:bg-white focus:border-blue-400 outline-none hidden group-focus-within:inline">
-            <button type="submit" class="glass-btn glass-gray w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="重命名"><i class="fa-solid fa-pen"></i></button>
-          </form>
-          <form action="/groups/{{ gd.group.id }}/ungroup" method="post" onsubmit="return confirm('确认拆分此分组？图片将保留但不再分组。')">
+        <div class="flex gap-1 flex-shrink-0">
+          <a href="/groups/{{ gd.group.id }}" class="glass-btn glass-gray w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="查看详情"><i class="fa-solid fa-arrow-right"></i></a>
+          <form action="/groups/{{ gd.group.id }}/ungroup" method="post" onsubmit="return confirm('确认拆分此分组？')">
             <button type="submit" class="glass-btn glass-red w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" title="拆分"><i class="fa-solid fa-link-slash"></i></button>
           </form>
         </div>
       </div>
 
       {% if gd.statuses %}
-      <div class="flex gap-2 mb-3 text-[10px] text-gray-500">
+      <div class="flex gap-1.5 mb-3 text-[10px] flex-wrap">
         {% for status, cnt in gd.statuses.items() %}
-        <span class="px-2 py-0.5 rounded-full bg-white/50 border border-white/30">
+        <span class="px-2 py-0.5 rounded-full {{ 'bg-blue-50/80 text-blue-600' if status == 'pending' else 'bg-green-50/80 text-green-600' if status == 'confirmed' else 'bg-gray-50/80 text-gray-500' }} border border-white/30">
           {{ {'pending':'待确认','confirmed':'已归档','rejected':'已驳回'}.get(status, status) }}: {{ cnt }}
         </span>
         {% endfor %}
@@ -62,21 +85,38 @@ html, body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', '
 
       <div class="grid grid-cols-5 gap-1.5">
         {% for img in gd.images %}
-        <a href="/{% if img.status.value == 'confirmed' %}archive{% else %}pending{% endif %}/{{ img.id }}">
+        <a href="/{% if img.status.value == 'confirmed' %}archive{% else %}pending{% endif %}/{{ img.id }}" class="relative group/img">
           <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="" loading="lazy"
-            class="w-full aspect-square object-cover rounded-lg bg-gray-100/50 border border-white/30 hover:border-blue-400 transition-all">
+            class="w-full aspect-square object-cover rounded-lg bg-gray-100/50 border border-white/30 group-hover/img:border-blue-400 transition-all group-hover/img:shadow-md">
+          <div class="absolute inset-0 bg-black/0 group-hover/img:bg-black/10 rounded-lg transition-all"></div>
         </a>
         {% endfor %}
       </div>
 
       {% if gd.total > 5 %}
-      <a href="/groups/{{ gd.group.id }}" class="block text-center text-xs text-blue-500 hover:text-blue-700 mt-2 font-medium">
-        查看全部 {{ gd.total }} 张 →
+      <a href="/groups/{{ gd.group.id }}" class="block text-center text-xs text-blue-500 hover:text-blue-700 mt-2.5 font-medium transition-colors">
+        查看全部 {{ gd.total }} 张 <i class="fa-solid fa-arrow-right ml-0.5 text-[10px]"></i>
       </a>
+      {% endif %}
+
+      {% if not gd.group.processed and gd.total > 0 %}
+      <div class="mt-3 pt-3 border-t border-gray-100">
+        <a href="/groups/{{ gd.group.id }}" class="glass-green w-full py-2 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-check"></i> 处理此分组
+        </a>
+      </div>
       {% endif %}
     </div>
     {% endfor %}
   </div>
   {% endif %}
 </div>
+
+<script>
+function groupApp() {
+  return {
+    init() {}
+  };
+}
+</script>
 {% endblock %}
