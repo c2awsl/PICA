@@ -20,10 +20,8 @@ class ScannerProcess:
         args = [sys.executable, "-m", "pica.scanner_worker", self.config_path]
         self._process = subprocess.Popen(
             args,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            bufsize=1,
-            text=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
             creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
         )
         logger.info("scanner process started (pid=%d)", self._process.pid)

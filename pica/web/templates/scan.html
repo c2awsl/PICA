@@ -10,16 +10,21 @@
     </p>
 
     <div x-data="scanner()" x-init="init()">
-        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-            <button class="btn btn-primary" @click="startScan" x-show="!running">开始扫描</button>
-            <button class="btn btn-danger" @click="stopScan" x-show="running">停止扫描</button>
-            <button class="btn btn-danger" @click="exitScanner" style="background:#6c757d;border-color:#6c757d;">退出扫描程序</button>
-            <span x-show="running" style="color:#e65100;font-size:14px;">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <button class="btn btn-primary" @click="startScan" x-show="status==='idle'">开始扫描</button>
+            <button class="btn btn-warning" @click="pauseScan" x-show="status==='running'" style="background:#f57c00;border-color:#f57c00;">暂停</button>
+            <button class="btn btn-primary" @click="resumeScan" x-show="status==='paused'">继续</button>
+            <button class="btn btn-danger" @click="stopScan" x-show="status==='running' || status==='paused'">停止</button>
+            <button class="btn btn-danger" @click="exitScanner" x-show="alive" style="background:#6c757d;border-color:#6c757d;">退出扫描程序</button>
+            <span x-show="status==='running'" style="color:#e65100;font-size:14px;">
                 <span class="spinner"></span> 扫描中...
+            </span>
+            <span x-show="status==='paused'" style="color:#f57c00;font-size:14px;">
+                ⏸ 已暂停
             </span>
         </div>
 
-        <template x-if="ran">
+        <template x-if="ran || status!=='idle'">
             <div style="margin-top:20px;">
                 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
                     <div class="card" style="text-align:center;padding:16px;">
@@ -63,7 +68,8 @@
 <script>
 function scanner() {
     return {
-        running: false,
+        status: "idle",     // idle | running | paused
+        alive: false,
         ran: false,
         found: 0,
         newCount: 0,
@@ -73,41 +79,52 @@ function scanner() {
         timer: null,
 
         init() {
-            this.fetchProgress();
+            this.poll();
         },
 
-        async fetchProgress() {
+        async poll() {
             try {
                 const r = await fetch("/scan/progress");
                 const d = await r.json();
-                this.running = d.running;
+                if (d.paused) this.status = "paused";
+                else if (d.running) this.status = "running";
+                else this.status = "idle";
+                this.alive = d.command === "start" || d.command === "paused" || d.command === "resume" || d.running;
                 this.found = d.found;
                 this.newCount = d.new;
                 this.skipped = d.skipped;
                 this.errors = d.errors;
                 this.currentFile = d.current_file;
                 if (d.found > 0 || d.new > 0 || d.skipped > 0) this.ran = true;
-                if (d.running) {
-                    this.timer = setTimeout(() => this.fetchProgress(), 500);
-                } else if (this.timer) {
-                    clearTimeout(this.timer);
-                    this.timer = null;
-                }
             } catch(e) {}
+            this.timer = setTimeout(() => this.poll(), 1000);
         },
 
         async startScan() {
             await fetch("/scan/start", { method: "POST" });
             this.ran = true;
-            this.fetchProgress();
+            this.alive = true;
+            this.status = "running";
+        },
+
+        async pauseScan() {
+            await fetch("/scan/pause", { method: "POST" });
+            this.status = "paused";
+        },
+
+        async resumeScan() {
+            await fetch("/scan/resume", { method: "POST" });
+            this.status = "running";
         },
 
         async stopScan() {
             await fetch("/scan/stop", { method: "POST" });
+            this.status = "idle";
         },
 
         async exitScanner() {
             await fetch("/scan/exit", { method: "POST" });
+            this.alive = false;
         }
     }
 }

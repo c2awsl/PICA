@@ -14,8 +14,11 @@ def _read_progress(cfg) -> dict:
         def g(key, default="0"):
             row = session.get(ScanStatus, key)
             return row.value if row else default
+        cmd = g("command", "idle")
         return {
             "running": g("running", "0") == "1",
+            "paused": cmd == "paused",
+            "command": cmd,
             "found": int(g("found")),
             "new": int(g("new")),
             "skipped": int(g("skipped")),
@@ -56,9 +59,23 @@ async def scan_page(request: Request):
 async def scan_start(request: Request):
     cfg = request.app.state.cfg
     progress = _read_progress(cfg)
-    if progress["running"]:
+    if progress["running"] and not progress["paused"]:
         return JSONResponse({"success": False, "error": "already running"})
     _write_command(cfg, "start")
+    return JSONResponse({"success": True})
+
+
+@router.post("/scan/pause")
+async def scan_pause(request: Request):
+    cfg = request.app.state.cfg
+    _write_command(cfg, "paused")
+    return JSONResponse({"success": True})
+
+
+@router.post("/scan/resume")
+async def scan_resume(request: Request):
+    cfg = request.app.state.cfg
+    _write_command(cfg, "resume")
     return JSONResponse({"success": True})
 
 

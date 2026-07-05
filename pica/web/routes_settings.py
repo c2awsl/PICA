@@ -1,10 +1,28 @@
+import json
 from pathlib import Path
 
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse
 from pica.config import Config
+from pica.database import ScanStatus, get_engine, get_session_factory
 
 router = APIRouter()
+
+
+def _sync_scan_sources_to_db(cfg: Config):
+    engine = get_engine(cfg)
+    sf = get_session_factory(engine)
+    session = sf()
+    try:
+        row = session.get(ScanStatus, "scan_sources_json")
+        val = json.dumps(cfg.scan_sources, ensure_ascii=False)
+        if row:
+            row.value = val
+        else:
+            session.add(ScanStatus(key="scan_sources_json", value=val))
+        session.commit()
+    finally:
+        session.close()
 
 
 @router.get("/settings", response_class=HTMLResponse)
@@ -46,6 +64,7 @@ async def settings_save(request: Request):
 
     cfg.ensure_dirs()
     cfg.save()
+    _sync_scan_sources_to_db(cfg)
 
     return request.app.state.templates.TemplateResponse(
         "settings.html",
