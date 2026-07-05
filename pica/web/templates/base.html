@@ -336,6 +336,14 @@
             background: #fff; transform: scale(1.08);
         }
 
+        /* ── Marquee selection ── */
+        #marquee-rect {
+            position: fixed; z-index: 999; pointer-events: none; display: none;
+            background: rgba(0,122,255,0.06);
+            border: 1.5px solid rgba(0,122,255,0.5);
+            border-radius: 4px;
+        }
+
         /* ── Page padding helpers ── */
         .page-pad { padding: 24px 32px 48px; }
         @media (max-width: 768px) { .page-pad { padding: 16px; } }
@@ -343,6 +351,7 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body x-data="lightboxStore()">
+    <div id="marquee-rect"></div>
     <!-- ═══ Global Lightbox ═══ -->
     <template x-teleport="body">
         <div class="lightbox-overlay" :class="show ? 'show' : ''"
@@ -434,6 +443,58 @@
     document.addEventListener('dragend', (e) => {
         if (e.target) e.target.style.opacity = '';
     });
+    // ── Marquee selection ──
+    let marqueeState = null;
+    window.__marqueeAdd = null;
+    document.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        if (!e.target.closest) return;
+        if (e.target.closest('button, a, input, select, textarea, .img-hover-actions, .panel-btn, .toolbar-btn, .apple-dropdown, .floating-bar, .mac-titlebar, .nav-tabs, .traffic-lights, .box-tray, .tag-chip, .panel-chip, .glass-btn')) return;
+        if (e.target.closest('[draggable]')) return;
+        const card = e.target.closest('[data-img-id]');
+        if (card && card.dataset.imgId) return;
+        const rect = document.getElementById('marquee-rect');
+        if (!rect) return;
+        marqueeState = { sx: e.clientX, sy: e.clientY, ex: e.clientX, ey: e.clientY };
+        rect.style.left = e.clientX + 'px';
+        rect.style.top = e.clientY + 'px';
+        rect.style.width = '0px';
+        rect.style.height = '0px';
+        rect.style.display = 'block';
+        const onMove = (e2) => {
+            if (!marqueeState) return;
+            marqueeState.ex = e2.clientX;
+            marqueeState.ey = e2.clientY;
+            const x = Math.min(marqueeState.sx, marqueeState.ex);
+            const y = Math.min(marqueeState.sy, marqueeState.ey);
+            rect.style.left = x + 'px';
+            rect.style.top = y + 'px';
+            rect.style.width = Math.abs(marqueeState.ex - marqueeState.sx) + 'px';
+            rect.style.height = Math.abs(marqueeState.ey - marqueeState.sy) + 'px';
+        };
+        const onUp = () => {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+            if (!marqueeState) return;
+            const w = Math.abs(marqueeState.ex - marqueeState.sx);
+            const h = Math.abs(marqueeState.ey - marqueeState.sy);
+            rect.style.display = 'none';
+            if (w < 5 && h < 5) { marqueeState = null; return; }
+            const sx = Math.min(marqueeState.sx, marqueeState.ex);
+            const sy = Math.min(marqueeState.sy, marqueeState.ey);
+            document.querySelectorAll('[data-img-id]').forEach(el => {
+                const r = el.getBoundingClientRect();
+                if (!(r.left > sx + w || r.left + r.width < sx || r.top > sy + h || r.top + r.height < sy)) {
+                    const id = parseInt(el.dataset.imgId);
+                    if (window.__marqueeAdd) window.__marqueeAdd(id);
+                }
+            });
+            marqueeState = null;
+        };
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+    });
+
     document.addEventListener('alpine:init', () => {
         Alpine.data('lightboxStore', () => ({
             show: false,
