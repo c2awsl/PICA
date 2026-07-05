@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% block title %}设置{% endblock %}
+{% block content %}
+<h2 style="margin-bottom:20px;">系统设置</h2>
+
+{% if saved %}
+<div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show=false, 5000)" style="background:#e8f5e9;color:#2e7d32;padding:12px 16px;border-radius:8px;margin-bottom:20px;font-size:14px;display:flex;justify-content:space-between;align-items:center;">
+    <span>✓ 设置已保存并生效</span>
+    <button @click="show=false" style="background:none;border:none;color:#2e7d32;cursor:pointer;font-size:18px;">&times;</button>
+</div>
+{% endif %}
+
+{% if needs_restart and needs_restart|length > 0 %}
+<div style="background:#fff3e0;color:#e65100;padding:16px;border-radius:8px;margin-bottom:20px;font-size:14px;">
+    <strong>⚠ 以下设置需要重启服务才能生效：</strong>
+    <ul style="margin:8px 0 0 16px;">
+        {% for item in needs_restart %}
+        <li>{{ item }}</li>
+        {% endfor %}
+    </ul>
+    <p style="margin-top:8px;">重启方式：在终端按 <kbd style="background:#eee;padding:2px 6px;border-radius:3px;">Ctrl+C</kbd> 停止后重新运行 <code style="background:#eee;padding:2px 6px;border-radius:3px;">python -m pica</code></p>
+</div>
+{% endif %}
+
+<form method="post" action="/settings">
+    <div class="card">
+        <h3 style="margin-bottom:16px;">
+            AI 识别
+            <span style="font-size:11px;color:#2e7d32;font-weight:400;background:#e8f5e9;padding:2px 8px;border-radius:4px;margin-left:8px;">即时生效</span>
+        </h3>
+
+        <div style="margin-bottom:16px;">
+            <label style="font-weight:600;font-size:14px;display:block;margin-bottom:4px;">Ollama 地址</label>
+            <input type="text" name="ollama_url" value="{{ cfg.ollama_url }}" style="width:100%;max-width:480px;">
+            <div style="font-size:12px;color:#999;margin-top:4px;">修改后下一次图片识别立即使用新地址</div>
+        </div>
+
+        <div style="margin-bottom:16px;">
+            <label style="font-weight:600;font-size:14px;display:block;margin-bottom:4px;">AI 模型</label>
+            <input type="text" name="ai_model" value="{{ cfg.ai_model }}" style="width:100%;max-width:360px;">
+            <div style="font-size:12px;color:#999;margin-top:4px;">修改后下次识别立即生效，如 llava:7b, gemma-3-vision:12b</div>
+        </div>
+
+        <div style="margin-bottom:16px;">
+            <label style="font-weight:600;font-size:14px;display:block;margin-bottom:4px;">推理超时（秒）</label>
+            <input type="number" name="ai_timeout" value="{{ cfg.ai_timeout }}" style="width:120px;" min="10" max="600">
+        </div>
+
+        <div style="margin-bottom:16px;">
+            <label style="font-weight:600;font-size:14px;display:block;margin-bottom:4px;">AI 提示词（Prompt）</label>
+            <textarea name="ai_prompt" rows="6" style="width:100%;max-width:640px;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:monospace;">{{ cfg.ai_prompt }}</textarea>
+            <div style="font-size:12px;color:#999;margin-top:4px;">控制 AI 分析图片的指令。AI 可自由生成分类，不再受预设列表限制</div>
+        </div>
+    </div>
+
+    <div class="card" x-data="dirManager()">
+        <h3 style="margin-bottom:16px;">
+            扫描源目录
+            <span style="font-size:11px;color:#2e7d32;font-weight:400;background:#e8f5e9;padding:2px 8px;border-radius:4px;margin-left:8px;">即时生效</span>
+        </h3>
+        <div style="margin-bottom:8px;">
+            <label style="font-weight:600;font-size:14px;display:block;margin-bottom:4px;">源目录路径</label>
+            <div style="margin-bottom:8px;">
+                <template x-for="(dir, idx) in dirs" :key="idx">
+                    <div style="display:flex;gap:8px;margin-bottom:6px;align-items:center;">
+                        <input type="text" :name="'scan_src_' + idx" x-model="dirs[idx]" readonly style="flex:1;max-width:520px;background:#f8f9fa;cursor:default;font-family:monospace;font-size:13px;padding:8px 12px;border:1px solid #ddd;border-radius:8px;">
+                        <button type="button" class="btn btn-ghost" style="font-size:12px;padding:6px 14px;" @click="openBrowser(idx)">浏览</button>
+                        <button type="button" style="background:none;border:none;color:#d32f2f;cursor:pointer;font-size:18px;line-height:1;" @click="removeDir(idx)" title="移除">&times;</button>
+                    </div>
+                </template>
+            </div>
+            <input type="hidden" name="scan_sources" :value="dirs.join('\n')">
+
+            <button type="button" class="btn btn-ghost" style="font-size:13px;" @click="addDir">+ 添加目录</button>
+
+            <div style="font-size:12px;color:#999;margin-top:8px;">
+                点击"浏览"从文件系统选择目录。程序会递归扫描所有子目录，找到的图片复制到 pending 后原始文件不会被修改。
+                扫描操作在 <a href="/scan" style="color:#1a73e8;">扫描页面</a> 手动触发。
+            </div>
+        </div>
+
+        <!-- Directory Browser Modal -->
+        <div x-show="browserOpen" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;display:flex;align-items:center;justify-content:center;" x-cloak @click.self="browserOpen = false">
+            <div style="background:#fff;border-radius:12px;max-width:640px;width:90%;max-height:80vh;display:flex;flex-direction:column;">
+                <div style="padding:16px 20px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-weight:600;font-size:15px;">选择目录</span>
+                    <button @click="browserOpen = false" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999;">&times;</button>
+                </div>
+                <div style="padding:12px 20px;border-bottom:1px solid #f0f0f0;font-size:13px;color:#1a73e8;word-break:break-all;min-height:36px;">
+                    <template x-for="(seg, si) in breadcrumb" :key="si">
+                        <span>
+                            <template x-if="si > 0"><span style="color:#ccc;margin:0 4px;">/</span></template>
+                            <a href="#" @click.prevent="navigateTo(seg.path)" style="text-decoration:none;color:#1a73e8;" x-text="seg.label"></a>
+                        </span>
+                    </template>
+                </div>
+                <div style="flex:1;overflow-y:auto;padding:8px 0;min-height:200px;">
+                    <div x-show="browserLoading" style="text-align:center;padding:40px;color:#999;">加载中...</div>
+                    <template x-for="d in browserDirs" :key="d">
+                        <div @click="navigateTo(browserCurrent + (browserCurrent.endsWith('\\') ? '' : '\\') + d)" style="padding:10px 20px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:14px;hover:background:#f5f5f5;" @mouseenter="$el.style.background='#f5f5f5'" @mouseleave="$el.style.background=''">
+                            <span style="color:#f5a623;">📁</span>
+                            <span x-text="d"></span>
+                        </div>
+                    </template>
+                    <div x-show="!browserLoading && browserDirs.length === 0 && browserCurrent" style="text-align:center;padding:40px;color:#999;">
+                        此目录下没有子文件夹
+                    </div>
+                </div>
+                <div style="padding:12px 20px;border-top:1px solid #eee;display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:12px;color:#999;font-family:monospace;" x-text="browserCurrent"></span>
+                    <div style="display:flex;gap:8px;">
+                        <button type="button" class="btn btn-ghost" style="font-size:13px;padding:6px 16px;" @click="browserOpen = false">取消</button>
+                        <button type="button" class="btn btn-primary" style="font-size:13px;padding:6px 16px;" @click="selectDir">选择此文件夹</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-bottom:16px;">
+            默认分类（归档用）
+            <span style="font-size:11px;color:#2e7d32;font-weight:400;background:#e8f5e9;padding:2px 8px;border-radius:4px;margin-left:8px;">即时生效</span>
+        </h3>
+
+        <div style="margin-bottom:8px;">
+            <label style="font-weight:600;font-size:14px;display:block;margin-bottom:4px;">分类列表（逗号分隔）</label>
+            <input type="text" name="categories" value="{{ cfg.categories|join(', ') }}" style="width:100%;max-width:480px;">
+            <div style="font-size:12px;color:#999;margin-top:4px;">
+                这些是预置分类，AI 也可以生成新的分类并自动创建对应目录。
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-bottom:16px;">
+            网络与服务
+            <span style="font-size:11px;color:#e65100;font-weight:400;background:#fff3e0;padding:2px 8px;border-radius:4px;margin-left:8px;">需重启</span>
+        </h3>
+
+        <div style="margin-bottom:12px;display:flex;gap:16px;">
+            <div>
+                <label style="font-weight:600;font-size:14px;display:block;margin-bottom:4px;">监听地址</label>
+                <input type="text" name="host" value="{{ cfg.host }}" style="width:160px;">
+            </div>
+            <div>
+                <label style="font-weight:600;font-size:14px;display:block;margin-bottom:4px;">端口</label>
+                <input type="number" name="port" value="{{ cfg.port }}" style="width:120px;" min="1" max="65535">
+            </div>
+        </div>
+        <div style="font-size:12px;color:#999;">修改地址或端口后需重启服务生效</div>
+    </div>
+
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:13px;color:#999;">所有修改保存后 <strong>即时生效</strong>（除网络设置外）</div>
+        <button type="submit" class="btn btn-primary">保存设置</button>
+    </div>
+</form>
+
+<script>
+function dirManager() {
+    return {
+        dirs: {{ cfg.scan_sources | tojson | safe }},
+        browserOpen: false,
+        browserCurrent: "",
+        browserDirs: [],
+        browserLoading: false,
+        browserTargetIdx: -1,
+        breadcrumb: [],
+
+        addDir() {
+            this.dirs.push("");
+            const idx = this.dirs.length - 1;
+            this.openBrowser(idx);
+        },
+
+        removeDir(idx) {
+            this.dirs.splice(idx, 1);
+        },
+
+        openBrowser(idx) {
+            this.browserTargetIdx = idx;
+            this.browserOpen = true;
+            this.loadDirs("");
+        },
+
+        async loadDirs(path) {
+            this.browserLoading = true;
+            this.browserDirs = [];
+            try {
+                const r = await fetch("/api/browse?path=" + encodeURIComponent(path));
+                const data = await r.json();
+                this.browserCurrent = data.current || "";
+                this.browserDirs = data.dirs || [];
+                this.buildBreadcrumb(this.browserCurrent);
+                if (data.error) {
+                    this.browserDirs = [];
+                }
+            } catch(e) {
+                this.browserDirs = [];
+            } finally {
+                this.browserLoading = false;
+            }
+        },
+
+        buildBreadcrumb(path) {
+            if (!path) { this.breadcrumb = [{ label: "计算机", path: "" }]; return; }
+            const parts = path.replace(/\\/g, "/").split("/").filter(Boolean);
+            let acc = "";
+            const crumbs = [{ label: "计算机", path: "" }];
+            for (const p of parts) {
+                acc += (acc ? (path.includes("\\") ? "\\" : "/") : "") + p;
+                if (acc.endsWith(":")) acc += "\\";
+                crumbs.push({ label: p, path: acc });
+            }
+            this.breadcrumb = crumbs;
+        },
+
+        navigateTo(path) {
+            this.loadDirs(path);
+        },
+
+        selectDir() {
+            if (this.browserTargetIdx >= 0 && this.browserTargetIdx < this.dirs.length) {
+                this.dirs[this.browserTargetIdx] = this.browserCurrent;
+            }
+            this.browserOpen = false;
+        }
+    }
+}
+</script>
+{% endblock %}

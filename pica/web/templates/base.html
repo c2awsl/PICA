@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PICA - {% block title %}图片管理{% endblock %}</title>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="https://unpkg.com/alpinejs@3.14.0" defer></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f5f5; color: #333; min-height: 100vh; }
+        nav { background: #fff; border-bottom: 1px solid #e0e0e0; padding: 0 24px; display: flex; align-items: center; height: 56px; gap: 24px; position: sticky; top: 0; z-index: 100; }
+        nav .logo { font-weight: 700; font-size: 18px; color: #1a73e8; }
+        nav a { text-decoration: none; color: #555; font-size: 14px; padding: 4px 12px; border-radius: 6px; transition: background .15s; }
+        nav a:hover { background: #e8f0fe; color: #1a73e8; }
+        nav a.active { background: #e8f0fe; color: #1a73e8; font-weight: 600; }
+        .container { max-width: 1280px; margin: 0 auto; padding: 24px; }
+        .card { background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.08); padding: 20px; margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+        .img-card { background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.08); overflow: hidden; transition: box-shadow .2s; }
+        .img-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.12); }
+        .img-card img { width: 100%; height: 200px; object-fit: cover; display: block; }
+        .img-card .info { padding: 12px; }
+        .img-card .info .cat { font-size: 12px; color: #1a73e8; background: #e8f0fe; display: inline-block; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; }
+        .img-card .info .tags { font-size: 12px; color: #666; line-height: 1.5; }
+        .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+        .badge-pending { background: #fff3e0; color: #e65100; }
+        .badge-confirmed { background: #e8f5e9; color: #2e7d32; }
+        .btn { display: inline-block; padding: 8px 20px; border-radius: 8px; border: none; font-size: 14px; cursor: pointer; text-decoration: none; transition: opacity .15s; }
+        .btn:hover { opacity: .85; }
+        .btn-primary { background: #1a73e8; color: #fff; }
+        .btn-success { background: #2e7d32; color: #fff; }
+        .btn-danger { background: #d32f2f; color: #fff; }
+        .btn-ghost { background: transparent; color: #555; border: 1px solid #ddd; }
+        form { display: inline; }
+        select, input[type=text] { padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+        .page-nav { display: flex; justify-content: center; gap: 8px; margin-top: 20px; }
+        .page-nav a { padding: 6px 14px; border: 1px solid #ddd; border-radius: 6px; text-decoration: none; color: #333; }
+        .page-nav a:hover { background: #e8f0fe; }
+        .empty { text-align: center; padding: 60px 20px; color: #999; }
+        .filter-bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <nav>
+        <span class="logo">PICA</span>
+        <a href="/pending" class="{{ 'active' if request.url.path in ['/', '/pending'] else '' }}">待确认</a>
+        <a href="/archive" class="{{ 'active' if request.url.path.startswith('/archive') else '' }}">归档浏览</a>
+        <a href="/scan" class="{{ 'active' if request.url.path == '/scan' else '' }}">扫描</a>
+        <a href="/stats" class="{{ 'active' if request.url.path == '/stats' else '' }}">统计</a>
+        <a href="/settings" class="{{ 'active' if request.url.path == '/settings' else '' }}" style="margin-left:auto;">设置</a>
+    </nav>
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

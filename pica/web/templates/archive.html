@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}归档浏览{% endblock %}
+{% block content %}
+<h2 style="margin-bottom:20px;">归档浏览 <span style="font-size:14px;color:#999;font-weight:400;">(共 {{ total }} 张)</span></h2>
+
+<div class="filter-bar card" style="padding:16px;">
+    <form method="get" action="/archive" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;width:100%;">
+        <select name="category">
+            <option value="">全部分类</option>
+            {% for cat in categories %}
+            <option value="{{ cat }}" {{ 'selected' if current_category == cat else '' }}>{{ cat }}</option>
+            {% endfor %}
+        </select>
+        <input type="text" name="tag" placeholder="搜索标签..." value="{{ current_tag }}" style="width:200px;">
+        <button class="btn btn-primary" type="submit">筛选</button>
+        {% if current_category or current_tag %}
+        <a href="/archive" class="btn btn-ghost">清除</a>
+        {% endif %}
+    </form>
+</div>
+
+{% if images %}
+<div class="grid">
+    {% for img in images %}
+    <div class="img-card">
+        <a href="/archive/{{ img.id }}">
+            <img src="/thumbnails/{{ img.md5_hash }}_256.jpg?t={{ img.confirmed_at.timestamp() if img.confirmed_at else '' }}" alt="{{ img.filename }}" loading="lazy">
+        </a>
+        <div class="info">
+            {% if img.confirmed_category_list %}
+            <div>
+                {% for cat in img.confirmed_category_list %}
+                <span class="badge" style="background:#e8f5e9;color:#2e7d32;margin-right:4px;">{{ cat }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% if img.confirmed_tags_list %}
+            <div class="tags" style="margin-top:6px;">
+                {% for tag in img.confirmed_tags_list[:5] %}
+                <span style="color:#999;">#{{ tag }}</span>{% if not loop.last %} {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
+            <div style="font-size:11px;color:#bbb;margin-top:4px;">{{ img.filename }}</div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if total_pages > 1 %}
+<div class="page-nav">
+    {% if page > 1 %}
+    <a href="/archive?page={{ page - 1 }}&category={{ current_category }}&tag={{ current_tag }}">上一页</a>
+    {% endif %}
+    <span style="padding:6px 14px;color:#999;">{{ page }} / {{ total_pages }}</span>
+    {% if page < total_pages %}
+    <a href="/archive?page={{ page + 1 }}&category={{ current_category }}&tag={{ current_tag }}">下一页</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty">
+    <p style="font-size:48px;margin-bottom:12px;">📂</p>
+    <p>暂无归档图片</p>
+</div>
+{% endif %}
+{% endblock %}

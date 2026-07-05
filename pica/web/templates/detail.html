@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}图片详情{% endblock %}
+{% block content %}
+<div class="card">
+    <a href="javascript:history.back()" style="display:inline-block;margin-bottom:16px;color:#1a73e8;text-decoration:none;">&larr; 返回</a>
+    <div style="display:grid;grid-template-columns:1fr 320px;gap:24px;">
+        <div>
+            <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="" style="width:100%;border-radius:8px;background:#f0f0f0;">
+        </div>
+        <div>
+            <h3 style="margin-bottom:12px;">{{ img.filename }}</h3>
+
+            <div style="margin-bottom:16px;">
+                <div style="font-weight:600;font-size:14px;margin-bottom:4px;">状态</div>
+                {% if img.status.value == 'pending' %}
+                <span class="badge badge-pending">待确认</span>
+                {% elif img.status.value == 'confirmed' %}
+                <span class="badge badge-confirmed">已归档</span>
+                {% else %}
+                <span class="badge">{{ img.status.value }}</span>
+                {% endif %}
+            </div>
+
+            {% if img.confirmed_category_list %}
+            <div style="margin-bottom:16px;">
+                <div style="font-weight:600;font-size:14px;margin-bottom:4px;">归档分类</div>
+                {% for cat in img.confirmed_category_list %}
+                <span class="badge" style="background:#e8f5e9;color:#2e7d32;margin-right:4px;">{{ cat }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if img.confirmed_tags_list %}
+            <div style="margin-bottom:16px;">
+                <div style="font-weight:600;font-size:14px;margin-bottom:4px;">归档标签</div>
+                <div style="font-size:13px;color:#666;">{{ img.confirmed_tags_list|join(', ') }}</div>
+            </div>
+            {% endif %}
+
+            {% if img.suggested_category_list %}
+            <div style="margin-bottom:16px;">
+                <div style="font-weight:600;font-size:14px;margin-bottom:4px;">AI 建议分类</div>
+                {% for cat in img.suggested_category_list %}
+                <span class="badge" style="background:#e8f0fe;color:#1a73e8;margin-right:4px;">{{ cat }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if img.suggested_tags_list %}
+            <div style="margin-bottom:16px;">
+                <div style="font-weight:600;font-size:14px;margin-bottom:4px;">AI 建议标签</div>
+                <div style="font-size:13px;color:#666;">{{ img.suggested_tags_list|join(', ') }}</div>
+            </div>
+            {% endif %}
+
+            <div style="margin-bottom:16px;">
+                <div style="font-weight:600;font-size:14px;margin-bottom:4px;">文件信息</div>
+                <table style="font-size:13px;color:#666;width:100%;">
+                    <tr><td style="padding:2px 8px 2px 0;">尺寸</td><td>{{ img.width }} x {{ img.height }}</td></tr>
+                    <tr><td style="padding:2px 8px 2px 0;">大小</td><td>{{ (img.file_size / 1024)|round(1) }} KB</td></tr>
+                    <tr><td style="padding:2px 8px 2px 0;">AI 模型</td><td>{{ img.ai_model or '-' }}</td></tr>
+                    <tr><td style="padding:2px 8px 2px 0;">推理耗时</td><td>{{ '%0.0f'|format(img.ai_latency_ms) if img.ai_latency_ms else '-' }} ms</td></tr>
+                    <tr><td style="padding:2px 8px 2px 0;">检测时间</td><td>{{ img.created_at.strftime('%Y-%m-%d %H:%M') if img.created_at else '-' }}</td></tr>
+                </table>
+            </div>
+
+            {% if img.status.value == 'pending' %}
+            <button class="btn btn-primary" onclick="document.getElementById('confirmForm').style.display='block';this.style.display='none';">确认归档</button>
+            <form id="confirmForm" action="/pending/{{ img.id }}/confirm" method="post" style="display:none;margin-top:12px;">
+                <div style="margin-bottom:8px;">
+                    <label style="font-weight:600;font-size:14px;">分类</label>
+                    <input type="text" name="category" value="{{ img.suggested_category_list|join(', ') }}" style="width:100%;margin-top:4px;">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="font-weight:600;font-size:14px;">标签</label>
+                    <textarea name="tags" rows="2" style="width:100%;margin-top:4px;padding:8px 12px;border:1px solid #ddd;border-radius:8px;">{{ img.suggested_tags_list|join(', ') }}</textarea>
+                </div>
+                <button class="btn btn-success" type="submit">确认</button>
+                <button class="btn btn-ghost" type="button" onclick="this.closest('form').style.display='none';document.querySelector('.btn-primary').style.display='inline-block';">取消</button>
+            </form>
+            <form action="/pending/{{ img.id }}/reject" method="post" style="margin-top:8px;">
+                <button class="btn btn-danger" style="font-size:12px;padding:6px 14px;">驳回</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

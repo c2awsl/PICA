@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}待确认{% endblock %}
+{% block content %}
+<h2 style="margin-bottom:20px;">待确认图片 <span style="font-size:14px;color:#999;font-weight:400;">({{ images|length }} 张)</span></h2>
+
+{% if images %}
+<div class="grid">
+    {% for img in images %}
+    <div class="img-card" x-data="{ open: false }">
+        <img src="/thumbnails/{{ img.md5_hash }}_256.jpg?t={{ img.created_at.timestamp() if img.created_at else '' }}" alt="{{ img.filename }}" loading="lazy" style="cursor:pointer;" @click="open = true">
+        <div class="info">
+            {% if img.suggested_category_list %}
+            <div>
+                {% for cat in img.suggested_category_list %}
+                <span class="badge" style="background:#e8f0fe;color:#1a73e8;margin-right:4px;">{{ cat }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% if img.suggested_tags_list %}
+            <div class="tags" style="margin-top:6px;">
+                {% for tag in img.suggested_tags_list[:5] %}
+                <span style="color:#999;">#{{ tag }}</span>{% if not loop.last %} {% endif %}
+                {% endfor %}
+                {% if img.suggested_tags_list|length > 5 %}
+                <span style="color:#ccc;">+{{ img.suggested_tags_list|length - 5 }}</span>
+                {% endif %}
+            </div>
+            {% endif %}
+            <div style="margin-top:10px;display:flex;gap:6px;">
+                <button class="btn btn-success" style="flex:1;font-size:12px;padding:6px 10px;" @click="open = true">确认</button>
+                <form action="/pending/{{ img.id }}/reject" method="post" style="flex:1;" onsubmit="return confirm('确定驳回？')">
+                    <button class="btn btn-danger" style="width:100%;font-size:12px;padding:6px 10px;">驳回</button>
+                </form>
+            </div>
+            <div style="font-size:11px;color:#bbb;margin-top:6px;">{{ img.filename }}</div>
+        </div>
+
+        <!-- Modal -->
+        <div x-show="open" style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;display:flex;align-items:center;justify-content:center;" x-cloak @click.self="open = false">
+            <div style="background:#fff;border-radius:12px;max-width:720px;width:90%;max-height:90vh;overflow-y:auto;padding:24px;">
+                <img src="/thumbnails/{{ img.md5_hash }}_256.jpg" alt="" style="width:100%;max-height:50vh;object-fit:contain;border-radius:8px;background:#f0f0f0;">
+                <form action="/pending/{{ img.id }}/confirm" method="post" style="margin-top:16px;">
+                    <div style="margin-bottom:12px;">
+                        <label style="font-weight:600;font-size:14px;">分类（逗号分隔）</label>
+                        <input type="text" name="category" value="{{ img.suggested_category_list|join(', ') }}" style="width:100%;margin-top:4px;">
+                    </div>
+                    <div style="margin-bottom:16px;">
+                        <label style="font-weight:600;font-size:14px;">标签（逗号分隔）</label>
+                        <textarea name="tags" rows="2" style="width:100%;margin-top:4px;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;">{{ img.suggested_tags_list|join(', ') }}</textarea>
+                    </div>
+                    <div style="display:flex;gap:8px;justify-content:flex-end;">
+                        <button type="button" class="btn btn-ghost" @click="open = false">取消</button>
+                        <button type="submit" class="btn btn-primary">确认归档</button>
+                    </div>
+                </form>
+                <form action="/pending/{{ img.id }}/reject" method="post" style="margin-top:8px;display:flex;justify-content:flex-end;">
+                    <button class="btn btn-danger" style="font-size:12px;padding:6px 14px;" onsubmit="return confirm('确定驳回？')">驳回此图片</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty">
+    <p style="font-size:48px;margin-bottom:12px;">📷</p>
+    <p>暂无待确认图片</p>
+    <p style="font-size:13px;color:#bbb;margin-top:6px;">同步图片到 <code>sync_dir/</code> 后会自动触发识别</p>
+</div>
+{% endif %}
+{% endblock %}
